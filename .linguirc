@@ -1,0 +1,16 @@
+{
+  "locales": [
+    "en",
+    "ru"
+  ],
+  "sourceLocale": "en",
+  "catalogs": [
+    {
+      "path": "src/i18n/{locale}",
+      "include": [
+        "src"
+      ]
+    }
+  ],
+  "format": "minimal"
+}

@@ -1,7 +1,8 @@
 import { DateUtils } from "react-day-picker";
+import moment from "moment";
 
 import { isAFilterGroupInstance } from "./blocks/filterGroup";
-import { Utils } from "./utils";
+import { Logger } from "./logger";
 
 const halfDay = 12 * 60 * 60 * 1000;
 
@@ -9,7 +10,7 @@ class CardFilter {
   static createDatePropertyFromString(initialValue) {
     let dateProperty = {};
     if (initialValue) {
-      const singleDate = new Date(Number(initialValue));
+      const singleDate = moment().date(Number(initialValue)).toDate();
       if (singleDate && DateUtils.isDate(singleDate)) {
         dateProperty.from = singleDate.getTime();
       } else {
@@ -20,6 +21,7 @@ class CardFilter {
         }
       }
     }
+
     return dateProperty;
   }
 
@@ -33,7 +35,7 @@ class CardFilter {
     const { filters } = filterGroup;
 
     if (filterGroup.filters.length < 1) {
-      return true; // No filters = always met
+      return true;
     }
 
     if (filterGroup.operation === "or") {
@@ -48,7 +50,7 @@ class CardFilter {
       }
       return false;
     }
-    Utils.assert(filterGroup.operation === "and");
+    Logger.assert(filterGroup.operation === "and");
     for (const filter of filters) {
       if (isAFilterGroupInstance(filter)) {
         if (!this.isFilterGroupMet(filter, templates, card)) {

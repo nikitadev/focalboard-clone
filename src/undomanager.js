@@ -1,3 +1,5 @@
+import moment from "moment";
+
 class Manager {
   #operations = [];
   #index = -1;
@@ -20,7 +22,7 @@ class Manager {
     return !operation ? undefined : operation.note;
   }
 
-  async #execute(operation, action = "undo" | "redo") {
+  async #exec(operation, action = "undo" | "redo") {
     if (!operation || typeof operation[action] !== "function") {
       return this;
     }
@@ -61,7 +63,7 @@ class Manager {
       const count = this.operations.length - 1;
       timestamp = count > 0 ? this.operations[count].checkpoint : 0;
     } else {
-      timestamp = Date.now();
+      timestamp = moment().toDate();
     }
 
     this.operations.push({
@@ -84,9 +86,7 @@ class Manager {
     // Set the current index to the end
     this.index = this.operations.length - 1;
 
-    if (this.onOperationChanged) {
-      this.onOperationChanged();
-    }
+    this.onOperationChanged?.();
 
     return this;
   }
@@ -103,18 +103,16 @@ class Manager {
     const currentGroupId = operation.groupId;
     if (currentGroupId) {
       do {
-        await this.execute(operation, "undo");
+        await this.exec(operation, "undo");
         this.index -= 1;
         operation = this.operations[this.index];
       } while (this.index >= 0 && currentGroupId === operation.groupId);
     } else {
-      await this.execute(operation, "undo");
+      await this.exec(operation, "undo");
       this.index -= 1;
     }
 
-    if (this.onOperationChanged) {
-      this.onOperationChanged();
-    }
+    this.onOperationChanged?.();
 
     return this;
   }
@@ -143,9 +141,7 @@ class Manager {
       this.index += 1;
     }
 
-    if (this.onOperationChanged) {
-      this.onOperationChanged();
-    }
+    this.onOperationChanged?.();
 
     return this;
   }

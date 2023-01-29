@@ -1,4 +1,4 @@
-const emojiList = [
+const emojis = [
   "😀",
   "😁",
   "😂",
@@ -1792,7 +1792,7 @@ const emojiList = [
   "🇿🇼",
 ];
 
-const randomEmojiList = [
+const anyEmojis = [
   "👀",
   "👁",
   "👁‍🗨",
@@ -2543,4 +2543,4 @@ const randomEmojiList = [
   "🚩",
 ];
 
-export { emojiList, randomEmojiList };
+export { emojis, anyEmojis };

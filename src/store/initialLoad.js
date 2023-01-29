@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 
-import { default as client } from "../octoClient";
+import { default as client } from "../dbClient";
 import { ErrorId } from "../errors";
 
 export const initialLoad = createAsyncThunk("initialLoad", async () => {

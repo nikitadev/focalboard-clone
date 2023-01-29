@@ -9,7 +9,7 @@ import { useMatch } from "react-router-dom";
 import Workspace from "../../components/workspace";
 import CloudMessage from "../../components/messages/cloudMessage";
 import VersionMessage from "../../components/messages/versionMessage";
-import octoClient from "../../octoClient";
+import DbClient from "../../DbClient";
 import { Utils } from "../../utils";
 import { Logger } from "../../logger";
 import { useWebsockets } from '../../hooks/websockets';
@@ -68,11 +68,11 @@ const BoardPage = (props) => {
   const dispatch = useDispatch();
   const match = useMatch();
   const [mobileWarningClosed, setMobileWarningClosed] = useState(
-    UserSettings.getMobileWarningClosed()
+    UserSettings.mobileWarningClosed
   );
   const teamId =
     match.params.teamId ||
-    UserSettings.getLastTeamId() ||
+    UserSettings.lastTeamId ||
     Constants.globalTeamId;
   const viewId = match.params.viewId;
   const person = useSelector(getPerson);
@@ -98,7 +98,7 @@ const BoardPage = (props) => {
 
   useEffect(() => {
     UserSettings.setLastTeamId(teamId);
-    octoClient.teamId = teamId;
+    DbClient.teamId = teamId;
     dispatch(setTeam(teamId));
   }, [dispatch, teamId]);
 
@@ -218,9 +218,9 @@ const BoardPage = (props) => {
     async (userId, boardTeamId, boardId) => {
       const result = await dispatch(loadBoardData(boardId));
       if (result.payload.blocks.length === 0 && userId) {
-        const member = await octoClient.joinBoard(boardId);
+        const member = await DbClient.joinBoard(boardId);
         if (!member) {
-          UserSettings.setLastBoardID(boardTeamId, null);
+          UserSettings.setLastBoardId(boardTeamId, null);
           UserSettings.setLastViewId(boardId, null);
           dispatch(setGlobalError("board-not-found"));
           return;
@@ -246,7 +246,7 @@ const BoardPage = (props) => {
       dispatch(setCurrentBoard(match.params.boardId));
 
       // and set it as most recently viewed board
-      UserSettings.setLastBoardID(teamId, match.params.boardId);
+      UserSettings.setLastBoardId(teamId, match.params.boardId);
 
       if (viewId !== Constants.globalTeamId) {
         // reset current, even if empty string
@@ -263,7 +263,7 @@ const BoardPage = (props) => {
     }
   }, [teamId, match.params.boardId, viewId, person.id, dispatch, loadAction, props.readonly, person, loadOrJoinBoard]);
 
-  const handleUnhideBoard = async (boardID) => {
+  const handleUnhideBoard = async (boardId) => {
     Logger.log("handleUnhideBoard called");
     if (!person) {
       return;
@@ -273,14 +273,14 @@ const BoardPage = (props) => {
       ...(config.hiddenBoardIDs ? config.hiddenBoardIDs.value : {}),
     };
 
-    delete hiddenBoards[boardID];
+    delete hiddenBoards[boardId];
     const hiddenBoardsArray = Object.keys(hiddenBoards);
     const patch = {
       updatedFields: {
         hiddenBoardIDs: JSON.stringify(hiddenBoardsArray),
       },
     };
-    const patchedProps = await octoClient.patchUserConfig(person.id, patch);
+    const patchedProps = await DbClient.patchUserConfig(person.id, patch);
     if (!patchedProps) {
       return;
     }
@@ -319,7 +319,7 @@ const BoardPage = (props) => {
           </div>
           <IconButton
             onClick={() => {
-              UserSettings.setMobileWarningClosed(true);
+              UserSettings.mobileWarningClosed = true;
               setMobileWarningClosed(true);
             }}
             icon={<CloseIcon />}

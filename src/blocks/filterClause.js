@@ -1,4 +1,4 @@
-import { Utils } from "../utils";
+import isEqual from "lodash/isEqual";
 
 function createFilterClause(o) {
   return {
@@ -12,7 +12,7 @@ function areEqual(a, b) {
   return (
     a.propertyId === b.propertyId &&
     a.condition === b.condition &&
-    Utils.arraysEqual(a.values, b.values)
+    isEqual(a.values, b.values)
   );
 }
 

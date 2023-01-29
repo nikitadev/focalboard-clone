@@ -1,10 +1,10 @@
-import { OctoUtils } from "./octoUtils";
+import { DbUtils } from "./dbUtils";
 import { Utils } from "./utils";
+import { Logger } from "./logger";
 import { UserSettings } from "./userSettings";
 import { Constants } from "./constants";
 
-class OctoClient {
-  serverUrl = null;
+class DbClient {
   logged = false;
 
   getBaseURL() {
@@ -16,7 +16,7 @@ class OctoClient {
     // Logging this for debugging.
     // Logging just once to avoid log noise.
     if (!this.logged) {
-      Utils.log(`OctoClient baseURL: ${baseURL}`);
+      Logger.log(`DbClient baseURL: ${baseURL}`);
       this.logged = true;
     }
 
@@ -30,9 +30,9 @@ class OctoClient {
     localStorage.setItem("focalboardSessionId", value);
   }
 
-  /* constructor(serverUrl?: string, public teamId = Constants.globalTeamId) {
-        this.serverUrl = serverUrl
-    } */
+  constructor(serverUrl) {
+    this.serverUrl = serverUrl;
+  }
 
   async getJson(response, defaultValue) {
     // The server may return null or malformed json
@@ -121,7 +121,7 @@ class OctoClient {
     return {
       Accept: "application/json",
       "Content-Type": "application/json",
-      Authorization: this.token ? "Bearer " + this.token : "",
+      Authorization: this.token ? `Bearer ${this.token}` : "",
       "X-Requested-With": "XMLHttpRequest",
     };
   }
@@ -234,7 +234,7 @@ class OctoClient {
     return fetch(this.getBaseURL() + path, { headers: this.headers() });
   }
 
-  async importFullArchive(file) {
+  async importAllArchiveToFile(file) {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -326,13 +326,13 @@ class OctoClient {
       return [];
     }
 
-    const fixedBlocks = OctoUtils.hydrateBlocks(blocks);
+    const fixedBlocks = DbUtils.hydrateBlocks(blocks);
 
     return fixedBlocks;
   }
 
   async patchBlock(boardId, blockId, blockPatch) {
-    Utils.log(`patchBlock: ${blockId} block`);
+    Logger.log(`patchBlock: ${blockId} block`);
     const body = JSON.stringify(blockPatch);
     return fetch(
       `${this.getBaseURL()}/api/v2/boards/${boardId}/blocks/${blockId}`,
@@ -345,7 +345,7 @@ class OctoClient {
   }
 
   async patchBlocks(blocks, blockPatches) {
-    Utils.log(`patchBlocks: ${blocks.length} blocks`);
+    Logger.log(`patchBlocks: ${blocks.length} blocks`);
     const blockIds = blocks.map((block) => block.id);
     const body = JSON.stringify({
       block_ids: blockIds,
@@ -362,7 +362,7 @@ class OctoClient {
   }
 
   async deleteBlock(boardId, blockId) {
-    Utils.log(`deleteBlock: ${blockId} on board ${boardId}`);
+    Logger.log(`deleteBlock: ${blockId} on board ${boardId}`);
 
     return fetch(
       `${this.getBaseURL()}/api/v2/boards/${boardId}/blocks/${encodeURIComponent(
@@ -376,7 +376,7 @@ class OctoClient {
   }
 
   async undeleteBlock(boardId, blockId) {
-    Utils.log(`undeleteBlock: ${blockId}`);
+    Logger.log(`undeleteBlock: ${blockId}`);
 
     return fetch(
       `${this.getBaseURL()}/api/v2/boards/${encodeURIComponent(
@@ -390,7 +390,7 @@ class OctoClient {
   }
 
   async undeleteBoard(boardId) {
-    Utils.log(`undeleteBoard: ${boardId}`);
+    Logger.log(`undeleteBoard: ${boardId}`);
     return fetch(`${this.getBaseURL()}/api/v2/boards/${boardId}/undelete`, {
       method: "POST",
       headers: this.headers(),
@@ -427,9 +427,9 @@ class OctoClient {
   }
 
   async insertBlocks(boardId, blocks, sourceBoardID) {
-    Utils.log(`insertBlocks: ${blocks.length} blocks(s) on board ${boardId}`);
+    Logger.log(`insertBlocks: ${blocks.length} blocks(s) on board ${boardId}`);
     blocks.forEach((block) => {
-      Utils.log(
+      Logger.log(
         `\t ${block.type}, ${block.id}, ${block.title?.substr(0, 50) || ""}`
       );
     });
@@ -449,18 +449,18 @@ class OctoClient {
   }
 
   async createBoardsAndBlocks(bab) {
-    Utils.log(
+    Logger.log(
       `createBoardsAndBlocks: ${bab.boards.length} board(s) ${bab.blocks.length} block(s)`
     );
     bab.boards.forEach((board) => {
-      Utils.log(
+      Logger.log(
         `\t Board ${board.id}, ${board.type}, ${
           board.title?.substr(0, 50) || ""
         }`
       );
     });
     bab.blocks.forEach((block) => {
-      Utils.log(
+      Logger.log(
         `\t Block ${block.id}, ${block.type}, ${
           block.title?.substr(0, 50) || ""
         }`
@@ -476,11 +476,11 @@ class OctoClient {
   }
 
   async deleteBoardsAndBlocks(boardIds, blockIds) {
-    Utils.log(
+    Logger.log(
       `deleteBoardsAndBlocks: ${boardIds.length} board(s) ${blockIds.length} block(s)`
     );
-    Utils.log(`\t Boards ${boardIds.join(", ")}`);
-    Utils.log(`\t Blocks ${blockIds.join(", ")}`);
+    Logger.log(`\t Boards ${boardIds.join(", ")}`);
+    Logger.log(`\t Blocks ${blockIds.join(", ")}`);
 
     const body = JSON.stringify({ boards: boardIds, blocks: blockIds });
 
@@ -493,7 +493,7 @@ class OctoClient {
 
   // BoardMember
   async createBoardMember(member) {
-    Utils.log(
+    Logger.log(
       `createBoardMember: user ${member.userId} and board ${member.boardId}`
     );
 
@@ -515,7 +515,7 @@ class OctoClient {
   }
 
   async joinBoard(boardId) {
-    Utils.log(`joinBoard: board ${boardId}`);
+    Logger.log(`joinBoard: board ${boardId}`);
 
     const response = await fetch(
       this.getBaseURL() + `/api/v2/boards/${boardId}/join`,
@@ -533,7 +533,7 @@ class OctoClient {
   }
 
   async updateBoardMember(member) {
-    Utils.log(
+    Logger.log(
       `udpateBoardMember: user ${member.userId} and board ${member.boardId}`
     );
 
@@ -550,7 +550,7 @@ class OctoClient {
   }
 
   async deleteBoardMember(member) {
-    Utils.log(
+    Logger.log(
       `deleteBoardMember: user ${member.userId} and board ${member.boardId}`
     );
 
@@ -565,11 +565,11 @@ class OctoClient {
   }
 
   async patchBoardsAndBlocks(babp) {
-    Utils.log(
+    Logger.log(
       `patchBoardsAndBlocks: ${babp.boardIDs.length} board(s) ${babp.blockIDs.length} block(s)`
     );
-    Utils.log(`\t Board ${babp.boardIDs.join(", ")}`);
-    Utils.log(`\t Blocks ${babp.blockIDs.join(", ")}`);
+    Logger.log(`\t Board ${babp.boardIDs.join(", ")}`);
+    Logger.log(`\t Blocks ${babp.blockIDs.join(", ")}`);
 
     const body = JSON.stringify(babp);
     return fetch(this.getBaseURL() + "/api/v2/boards-and-blocks", {
@@ -636,15 +636,15 @@ class OctoClient {
 
       try {
         const text = await response.text();
-        Utils.log(`uploadFile response: ${text}`);
+        Logger.log(`uploadFile response: ${text}`);
         const json = JSON.parse(text);
 
         return json.fileId;
       } catch (e) {
-        Utils.logError(`uploadFile json ERROR: ${e}`);
+        Logger.logError(`uploadFile json ERROR: ${e}`);
       }
     } catch (e) {
-      Utils.logError(`uploadFile ERROR: ${e}`);
+      Logger.logError(`uploadFile ERROR: ${e}`);
     }
 
     return undefined;
@@ -858,7 +858,7 @@ class OctoClient {
   }
 
   async createBoard(board) {
-    Utils.log(`createBoard: ${board.title} [${board.type}]`);
+    Logger.log(`createBoard: ${board.title} [${board.type}]`);
     return fetch(this.getBaseURL() + this.teamPath(board.teamId) + "/boards", {
       method: "POST",
       headers: this.headers(),
@@ -867,7 +867,7 @@ class OctoClient {
   }
 
   async patchBoard(boardId, boardPatch) {
-    Utils.log(`patchBoard: ${boardId} board`);
+    Logger.log(`patchBoard: ${boardId} board`);
     const body = JSON.stringify(boardPatch);
     return fetch(`${this.getBaseURL()}/api/v2/boards/${boardId}`, {
       method: "PATCH",
@@ -877,7 +877,7 @@ class OctoClient {
   }
 
   async deleteBoard(boardId) {
-    Utils.log(`deleteBoard: ${boardId}`);
+    Logger.log(`deleteBoard: ${boardId}`);
     return fetch(`${this.getBaseURL()}/api/v2/boards/${boardId}`, {
       method: "DELETE",
       headers: this.headers(),
@@ -1090,7 +1090,7 @@ class OctoClient {
     }
 
     const limits = await this.getJson(response, {});
-    Utils.log(`Cloud limits: cards=${limits.cards}   views=${limits.views}`);
+    Logger.log(`Cloud limits: cards=${limits.cards}   views=${limits.views}`);
     return limits;
   }
 
@@ -1104,7 +1104,7 @@ class OctoClient {
     }
 
     const stats = await this.getJson(response, {});
-    Utils.log(
+    Logger.log(
       `Site Statistics: cards=${stats.card_count}   boards=${stats.board_count}`
     );
     return stats;
@@ -1146,7 +1146,7 @@ class OctoClient {
   }
 }
 
-const octoClient = new OctoClient();
+const client = new DbClient();
 
-export { OctoClient };
-export default octoClient;
+export { client };
+export default client;

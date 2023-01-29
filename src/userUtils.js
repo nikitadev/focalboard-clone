@@ -1,17 +1,16 @@
-export function parseUserProps(props) {
-  const processedProps = {};
+export function readProperties(props) {
+  const result = {};
 
   props.forEach((prop) => {
-    const processedProp = prop;
     if (prop.name === "hiddenBoardIDs") {
-      const hiddenBoardIDs = JSON.parse(processedProp.value);
-      processedProp.value = {};
-      hiddenBoardIDs.forEach((boardID) => {
-        processedProp.value[boardID] = true;
+      const ids = JSON.parse(prop.value);
+      prop.value = {};
+      ids.forEach((id) => {
+        prop.value[id] = true;
       });
     }
-    processedProps[processedProp.name] = processedProp;
+    result[prop.name] = prop;
   });
 
-  return processedProps;
+  return result;
 }

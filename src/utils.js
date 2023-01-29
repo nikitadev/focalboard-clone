@@ -2,11 +2,13 @@ import { marked } from "marked";
 import { i18n } from "@lingui/core";
 import moment from "moment";
 
+import { Logger } from "./logger";
+
 import { generatePath } from "react-router-dom";
 
-import { createBoard } from "./blocks/board";
+import { newBoard } from "./blocks/board";
 import { createBoardView } from "./blocks/boardView";
-import { createCard } from "./blocks/card";
+import { newCard } from "./blocks/card";
 import { createCommentBlock } from "./blocks/commentBlock";
 import { UserSettings } from "./userSettings";
 
@@ -25,16 +27,16 @@ const base32Alphabet = "ybndrfg8ejkmcpqxot1uwisza345h769";
 export const SYSTEM_ADMIN_ROLE = "system_admin";
 export const TEAM_ADMIN_ROLE = "team_admin";
 
-const IDType = {
-  None: "7",
-  Workspace: "w",
-  Board: "b",
-  Card: "c",
-  View: "v",
-  Session: "s",
-  User: "u",
-  Token: "k",
-  BlockID: "a",
+const IdentityType = {
+  None: "4",
+  Workspace: "workspace",
+  Board: "board",
+  Card: "card",
+  View: "view",
+  Session: "session",
+  User: "user",
+  Token: "token",
+  BlockId: "block",
 };
 
 export const KeyCodes = {
@@ -52,25 +54,25 @@ class Utils {
     return idType + Utils.base32encode(data, false);
   }
 
-  static blockTypeToIDType(blockType) {
-    let ret = IDType.None;
+  static blockTypeToIdentityType(blockType) {
+    let id = IdentityType.None;
     switch (blockType) {
       case "workspace":
-        ret = IDType.Workspace;
+        id = IdentityType.Workspace;
         break;
       case "board":
-        ret = IDType.Board;
+        id = IdentityType.Board;
         break;
       case "card":
-        ret = IDType.Card;
+        id = IdentityType.Card;
         break;
       case "view":
-        ret = IDType.View;
+        id = IdentityType.View;
         break;
       default:
         break;
     }
-    return ret;
+    return id;
   }
 
   static getProfilePicture(userId) {
@@ -84,8 +86,8 @@ class Utils {
 
   static getUserDisplayName(user, configNameFormat) {
     let nameFormat = configNameFormat;
-    if (UserSettings.getNameFormat()) {
-      nameFormat = UserSettings.getNameFormat();
+    if (UserSettings.nameFormat) {
+      nameFormat = UserSettings.nameFormat;
     }
 
     let displayName = user.username;
@@ -111,12 +113,13 @@ class Utils {
 
   static getFullName(user) {
     if (user.firstname !== "" && user.lastname !== "") {
-      return user.firstname + " " + user.lastname;
+      return `${user.firstname} ${user.lastname}`;
     } else if (user.firstname !== "") {
       return user.firstname;
     } else if (user.lastname !== "") {
       return user.lastname;
     }
+
     return "";
   }
 
@@ -177,7 +180,7 @@ class Utils {
 
   static getElementById(elementId) {
     const element = document.getElementById(elementId);
-    Utils.assert(element, `getElementById "${elementId}$`);
+    Logger.assert(element, `getElementById "${elementId}$`);
 
     return element;
   }
@@ -243,9 +246,9 @@ class Utils {
           case OpenButtonClass:
             break;
           default: {
-            myResults.fontDescriptor = Utils._getFontString(style);
-            myResults.padding += Utils._getTotalHorizontalPadding(style);
-            const childResults = Utils._getFontAndPaddingFromChildren(
+            myResults.fontDescriptor = Utils.getFontString(style);
+            myResults.padding += Utils.getTotalHorizontalPadding(style);
+            const childResults = Utils.getFontAndPaddingFromChildren(
               element.children,
               myResults.padding
             );
@@ -261,7 +264,7 @@ class Utils {
     return myResults;
   };
 
-  static _getFontString(style) {
+  static #getFontString(style) {
     if (style.font) {
       return style.font;
     }
@@ -281,7 +284,7 @@ class Utils {
     return props.join(" ");
   }
 
-  static _getHorizontalMargin(style) {
+  static #getHorizontalMargin(style) {
     return parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);
   }
 
@@ -352,7 +355,7 @@ class Utils {
     return { total, checked };
   }
 
-  static _yearOption(date) {
+  static #yearOption(date) {
     const isCurrentYear = date.getFullYear() === new Date().getFullYear();
     return isCurrentYear ? undefined : "numeric";
   }
@@ -394,7 +397,7 @@ class Utils {
   // favicon
 
   static setFavicon(icon) {
-    if (Utils.isFocalboardPlugin()) {
+    if (Utils.isPlugin()) {
       // Do not change the icon from focalboard plugin
       return;
     }
@@ -511,7 +514,7 @@ class Utils {
     try {
       result = document.execCommand("copy");
     } catch (err) {
-      Utils.logError(`copyTextToClipboard ERROR: ${err}`);
+      Logger.error(`copyTextToClipboard ERROR: ${err}`);
       result = false;
     }
     textField.remove();
@@ -561,7 +564,7 @@ class Utils {
   }
 
   static buildURL(path, absolute) {
-    if (!Utils.isFocalboardPlugin() || process.env.TARGET_IS_PRODUCT) {
+    if (!Utils.isPlugin() || process.env.TARGET_IS_PRODUCT) {
       return path;
     }
 
@@ -617,7 +620,7 @@ class Utils {
       case "view":
         return createBoardView(block);
       case "card":
-        return createCard(block);
+        return newCard(block);
       case "comment":
         return createCommentBlock(block);
       default:
@@ -626,7 +629,7 @@ class Utils {
   }
 
   static fixBoard(board) {
-    return createBoard(board);
+    return newBoard(board);
   }
 
   static userAgent() {
@@ -635,8 +638,8 @@ class Utils {
 
   static isDesktopApp() {
     return (
-      Utils.userAgent().indexOf("Mattermost") !== -1 &&
-      Utils.userAgent().indexOf("Electron") !== -1
+      window.navigator.userAgent.indexOf("Mattermost") !== -1 &&
+      window.navigator.userAgent.indexOf("Electron") !== -1
     );
   }
 
@@ -649,10 +652,6 @@ class Utils {
 
   /**
    * Function to check how a version compares to another
-   *
-   * eg.  versionA = 4.16.0, versionB = 4.17.0 returns  1
-   *      versionA = 4.16.1, versionB = 4.16.1 returns  0
-   *      versionA = 4.16.1, versionB = 4.15.0 returns -1
    */
   static compareVersions(versionA, versionB) {
     if (versionA === versionB) {
@@ -709,15 +708,15 @@ class Utils {
   }
 
   static buildOriginalPath(
-    teamID = "",
+    teamId = "",
     boardId = "",
     viewId = "",
     cardId = ""
   ) {
     let originalPath = "";
 
-    if (teamID) {
-      originalPath += `${teamID}/`;
+    if (teamId) {
+      originalPath += `${teamId}/`;
     }
 
     if (boardId) {
@@ -765,7 +764,7 @@ class Utils {
   }
 
   static isMac() {
-    return navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    return navigator.toUpperCase().indexOf("MAC") >= 0;
   }
 
   static cmdOrCtrlPressed(e, allowAlt = false) {
@@ -844,4 +843,4 @@ class Utils {
   }
 }
 
-export { Utils, IDType };
+export { Utils, IdentityType };

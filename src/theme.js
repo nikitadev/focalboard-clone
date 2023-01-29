@@ -339,9 +339,6 @@ export function initThemes() {
   };
   if (darkThemeMq.addEventListener) {
     darkThemeMq.addEventListener("change", changeHandler);
-  } else if (darkThemeMq.addListener) {
-    // Safari and Mac app support
-    darkThemeMq.addListener(changeHandler);
   }
   loadTheme();
 }

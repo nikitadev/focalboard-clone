@@ -54,7 +54,6 @@ function getOptionGroups(
   }
   const allVisibleOptionIds = [...visibleOptionIds, ...unassignedOptionIds];
 
-  // If the empty group positon is not explicitly specified, make it the first visible column
   if (!allVisibleOptionIds.includes("") && !hiddenOptionIds.includes("")) {
     allVisibleOptionIds.unshift("");
   }

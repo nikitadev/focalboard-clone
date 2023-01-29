@@ -44,7 +44,7 @@ const ErrorPage = () => {
     );
   });
 
-    if (!Utils.isFocalboardPlugin() && errid === ErrorId.NotLoggedIn) {
+    if (!Utils.isPlugin() && errid === ErrorId.NotLoggedIn) {
       handleButtonClick(errorDef.button1Redirect);
     }
 

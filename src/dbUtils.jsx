@@ -12,14 +12,14 @@ import { createAttachmentBlock } from "./blocks/attachmentBlock";
 import { Utils } from "./utils";
 import { Logger } from "./logger";
 
-class OctoUtils {
+class DbUtils {
   static hydrateBlock(block) {
     switch (block.type) {
       /* case "view": {
         return createBoardView(block);
       }
       case "card": {
-        return createCard(block);
+        return newCard(block);
       } */
       case "text": {
         return createTextBlock(block);
@@ -74,7 +74,7 @@ class OctoUtils {
     const now = Date.now();
     const newBlocks = blocks.map((block) => {
       const newBlock = this.hydrateBlock(block);
-      newBlock.id = Utils.newGuid(Utils.blockTypeToIDType(newBlock.type));
+      newBlock.id = Utils.newGuid(Utils.blockTypeToIdentityType(newBlock.type));
       newBlock.createAt = now;
       newBlock.updateAt = now;
       idMap[block.id] = newBlock.id;
@@ -301,4 +301,4 @@ class OctoUtils {
   }
 }
 
-export { OctoUtils };
+export { DbUtils };

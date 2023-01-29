@@ -16,7 +16,7 @@ import "./welcomePage.scss";
 import mutator from "../../mutator";
 import { fetchPerson, getPerson, getConfig, patchProps } from "../../store/users";
 import { getCurrentTeam } from "../../store/teams";
-import octoClient from "../../octoClient";
+import DbClient from "../../DbClient";
 import { FINISHED, TOUR_ORDER } from "../../components/onboardingTour";
 
 import { UserSettingKey } from "../../userSettings";
@@ -64,7 +64,7 @@ const WelcomePage = () => {
         },
       };
 
-      const patchedProps = await octoClient.patchUserConfig(person.id, patch);
+      const patchedProps = await DbClient.patchUserConfig(person.id, patch);
       if (patchedProps) {
         await dispatch(patchProps(patchedProps));
       }
@@ -82,7 +82,7 @@ const WelcomePage = () => {
     }
 
     await setWelcomePageViewed(person.id);
-    const onboardingData = await octoClient.prepareOnboarding(currentTeam.id);
+    const onboardingData = await DbClient.prepareOnboarding(currentTeam.id);
     await dispatch(fetchPerson());
     const newPath = `/team/${onboardingData?.teamID}/${onboardingData?.boardID}`;
     history.replace(newPath);

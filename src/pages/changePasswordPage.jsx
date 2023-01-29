@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
 import Button from "../widgets/buttons/button";
-import client from "../octoClient";
+import client from "../DbClient";
 import "./changePasswordPage.scss";
 import { useSelector } from "react-redux";
 import { getPerson } from "../store/users";

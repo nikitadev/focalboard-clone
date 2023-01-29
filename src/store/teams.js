@@ -1,23 +1,23 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
-import octoClient from "../octoClient";
+import DbClient from "../dbClient";
 
-import { Utils } from "../utils";
+import { Logger } from "../logger";
 
 import { initialLoad } from "./initialLoad";
 
 export const fetchTeams = createAsyncThunk("team/fetch", async () =>
-  octoClient.getTeams()
+  DbClient.getTeams()
 );
 
 export const regenerateSignupToken = createAsyncThunk(
   "team/regenerateSignupToken",
-  async () => octoClient.regenerateTeamSignupToken()
+  async () => DbClient.regenerateTeamSignupToken()
 );
 
 export const refreshCurrentTeam = createAsyncThunk(
   "team/refreshCurrentTeam",
-  async () => octoClient.getTeam()
+  async () => DbClient.getTeam()
 );
 
 const teamSlice = createSlice({
@@ -29,11 +29,11 @@ const teamSlice = createSlice({
   },
   reducers: {
     setTeam: (state, action) => {
-      const teamID = action.payload;
-      state.currentId = teamID;
-      const team = state.allTeams.find((t) => t.id === teamID);
+      const teamId = action.payload;
+      state.currentId = teamId;
+      const team = state.allTeams.find((t) => t.id === teamId);
       if (!team) {
-        Utils.log(`Unable to find team in store. TeamID: ${teamID}`);
+        Logger.log(`Unable to find team in store. TeamID: ${teamId}`);
         return;
       }
 

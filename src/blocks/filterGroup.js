@@ -5,18 +5,15 @@ function isAFilterGroupInstance(object) {
 }
 
 function createFilterGroup(o) {
-  let filters = [];
-  if (o?.filters) {
-    filters = o.filters.map((p) => {
-      if (isAFilterGroupInstance(p)) {
-        return createFilterGroup(p);
-      }
-      return createFilterClause(p);
-    });
-  }
+  const filters = o?.filters?.map((p) => {
+    return isAFilterGroupInstance(p)
+      ? createFilterGroup(p)
+      : createFilterClause(p);
+  });
+
   return {
     operation: o?.operation || "and",
-    filters,
+    filters: filters || [],
   };
 }
 

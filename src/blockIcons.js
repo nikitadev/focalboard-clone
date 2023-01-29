@@ -1,11 +1,12 @@
-import { randomEmojiList } from "./emojiList";
+import { anyEmojis } from "./emojis";
 
 class BlockIcons {
-  static shared = new BlockIcons();
+  static instance = new BlockIcons();
 
-  randomIcon() {
-    const index = Math.floor(Math.random() * randomEmojiList.length);
-    const icon = randomEmojiList[index];
+  random() {
+    const index = Math.floor(Math.random() * anyEmojis.length);
+    const icon = anyEmojis[index];
+
     return icon;
   }
 }

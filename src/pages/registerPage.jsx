@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchPerson, getSignedIn } from "../store/users";
 
 import Button from "../widgets/buttons/button";
-import client from "../octoClient";
+import client from "../DbClient";
 import "./registerPage.scss";
 
 const RegisterPage = () => {
@@ -17,7 +17,7 @@ const RegisterPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const history = useNavigate();
   const dispatch = useDispatch();
-  const loggedIn = (useSelector) | (null > getSignedIn);
+  const signedIn = (useSelector) | (null > getSignedIn);
 
   const handleRegister = async () => {
     const queryString = new URLSearchParams(window.location.search);
@@ -44,7 +44,7 @@ const RegisterPage = () => {
     }
   };
 
-  if (loggedIn) {
+  if (signedIn) {
     return <Navigate to={"/"} />;
   }
 

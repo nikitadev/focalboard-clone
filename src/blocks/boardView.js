@@ -24,8 +24,7 @@ function createBoardView(block) {
   };
 }
 
-function sortBoardViewsAlphabetically(views) {
-  // Strip leading emoji to prevent unintuitive results
+function sortBoardViews(views) {
   return views
     .map((v) => {
       return { view: v, title: v.title.replace(/^\p{Emoji}*\s*/u, "") };
@@ -34,4 +33,4 @@ function sortBoardViewsAlphabetically(views) {
     .map((v) => v.view);
 }
 
-export { sortBoardViewsAlphabetically, createBoardView };
+export { sortBoardViews, createBoardView };

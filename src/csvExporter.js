@@ -85,7 +85,7 @@ class CsvExporter {
 
     cards.forEach((card) => {
       const row = [];
-      row.push(`"${this.encodeText(card.title)}"`);
+      row.push(`"${CsvExporter.encodeText(card.title)}"`);
       visibleProperties.forEach((template) => {
         let propertyValue = card.fields.properties[template.id];
         const property = propsRegistry.get(template.type);

@@ -19,7 +19,7 @@ import ErrorPage from "./pages/errorPage";
 import LoginPage from "./pages/loginPage";
 import RegisterPage from "./pages/registerPage";
 import { Utils } from "./utils";
-import octoClient from "./octoClient";
+import DbClient from "./DbClient";
 import { setGlobalError, getGlobalError } from "./store/globalError";
 import { getFirstTeam, fetchTeams } from "./store/teams";
 import { UserSettings } from "./userSettings";
@@ -58,29 +58,29 @@ function HomeToCurrentTeam(props) {
       loginRequired={true}
       component={() => {
         effect();
-        let teamID =
+        let teamId =
           (window.getCurrentTeamId && window.getCurrentTeamId()) || "";
-        const lastTeamID = UserSettings.getLastTeamId();
-        if (!teamID && !firstTeam && !lastTeamID) {
+        const lastTeamId = UserSettings.getLastTeamId();
+        if (!teamId && !firstTeam && !lastTeamId) {
           return <></>;
         }
-        teamID = teamID || lastTeamID || firstTeam?.id || "";
+        teamId = teamId || lastTeamId || firstTeam?.id || "";
 
-        if (UserSettings.getLastBoardId()) {
-          const lastBoardID = UserSettings.getLastBoardId()[teamID];
-          const lastViewID = UserSettings.getLastViewId()[lastBoardID];
+        if (UserSettings.lastBoardId) {
+          const lastBoardId = UserSettings.lastBoardId[teamId];
+          const lastViewId = UserSettings.lastViewId[lastBoardId];
 
-          if (lastBoardID && lastViewID) {
+          if (lastBoardId && lastViewId) {
             return (
-              <Navigate to={`/team/${teamID}/${lastBoardID}/${lastViewID}`} />
+              <Navigate to={`/team/${teamId}/${lastBoardId}/${lastViewId}`} />
             );
           }
-          if (lastBoardID) {
-            return <Navigate to={`/team/${teamID}/${lastBoardID}`} />;
+          if (lastBoardId) {
+            return <Navigate to={`/team/${teamId}/${lastBoardId}`} />;
           }
         }
 
-        return <Navigate to={`/team/${teamID}`} />;
+        return <Navigate to={`/team/${teamId}`} />;
       }}
     />
   );
@@ -92,7 +92,7 @@ function WorkspaceToTeamRedirect() {
   const history = useNavigate();
 
   useEffect(() => {
-    octoClient.getBoard(match.params.boardId).then((board) => {
+    DbClient.getBoard(match.params.boardId).then((board) => {
       if (board) {
         let newPath = generatePath(
           match.path.replace("/workspace/:workspaceId", "/team/:teamId"),

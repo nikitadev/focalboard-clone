@@ -5,16 +5,16 @@ import { t } from "@lingui/macro";
 import { BlockIcons } from "./blockIcons";
 import { createPatchesFromBlocks } from "./blocks/block";
 import {
-  createBoard,
+  newBoard,
   createPatchesFromBoards,
   createPatchesFromBoardsAndBlocks,
-  createCardPropertiesPatches,
+  newCardPropertiesPatches,
 } from "./blocks/board";
 import { createBoardView } from "./blocks/boardView";
-import { createCard } from "./blocks/card";
-import octoClient from "./octoClient";
+import { newCard } from "./blocks/card";
+import DbClient from "./dbClient";
 import { manager } from "./undoManager";
-import { Utils, IDType } from "./utils";
+import { Utils, IdentityType } from "./utils";
 import { Logger } from "./logger";
 import { UserSettings } from "./userSettings";
 
@@ -64,7 +64,7 @@ class Mutator {
       Logger.assertRefusal("manager does not support nested groups");
       return undefined;
     }
-    this.groupId = Utils.newGuid(IDType.None);
+    this.groupId = Utils.newGuid(IdentityType.None);
 
     return this.groupId;
   }
@@ -98,10 +98,10 @@ class Mutator {
     );
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, newBlock.id, updatePatch);
+        await DbClient.patchBlock(boardId, newBlock.id, updatePatch);
       },
       async () => {
-        await octoClient.patchBlock(boardId, oldBlock.id, undoPatch);
+        await DbClient.patchBlock(boardId, oldBlock.id, undoPatch);
       },
       description,
       this.groupId
@@ -131,14 +131,14 @@ class Mutator {
       async () => {
         await Promise.all(
           updatePatches.map((patch, i) =>
-            octoClient.patchBlock(boardId, newBlocks[i].id, patch)
+            DbClient.patchBlock(boardId, newBlocks[i].id, patch)
           )
         );
       },
       async () => {
         await Promise.all(
           undoPatches.map((patch, i) =>
-            octoClient.patchBlock(boardId, newBlocks[i].id, patch)
+            DbClient.patchBlock(boardId, newBlocks[i].id, patch)
           )
         );
       },
@@ -156,7 +156,7 @@ class Mutator {
   ) {
     return manager.perform(
       async () => {
-        const res = await octoClient.insertBlock(boardId, block);
+        const res = await DbClient.insertBlock(boardId, block);
         const jsonres = await res.json();
         const newBlock = jsonres[0];
         await afterRedo?.(newBlock);
@@ -164,7 +164,7 @@ class Mutator {
       },
       async (newBlock) => {
         await beforeUndo?.(newBlock);
-        await octoClient.deleteBlock(boardId, newBlock.id);
+        await DbClient.deleteBlock(boardId, newBlock.id);
       },
       description,
       this.groupId
@@ -181,11 +181,7 @@ class Mutator {
   ) {
     return manager.perform(
       async () => {
-        const res = await octoClient.insertBlocks(
-          boardId,
-          blocks,
-          sourceBoardID
-        );
+        const res = await DbClient.insertBlocks(boardId, blocks, sourceBoardID);
         const newBlocks = await res.json();
         updateAllBoardsAndBlocks([], newBlocks);
         await afterRedo?.(newBlocks);
@@ -195,7 +191,7 @@ class Mutator {
         await beforeUndo?.();
         const awaits = [];
         for (const block of newBlocks) {
-          awaits.push(octoClient.deleteBlock(boardId, block.id));
+          awaits.push(DbClient.deleteBlock(boardId, block.id));
         }
         await Promise.all(awaits);
       },
@@ -210,10 +206,10 @@ class Mutator {
     await manager.perform(
       async () => {
         await beforeRedo?.();
-        await octoClient.deleteBlock(block.boardId, block.id);
+        await DbClient.deleteBlock(block.boardId, block.id);
       },
       async () => {
-        await octoClient.undeleteBlock(block.boardId, block.id);
+        await DbClient.undeleteBlock(block.boardId, block.id);
         await afterUndo?.();
       },
       actualDescription,
@@ -224,7 +220,7 @@ class Mutator {
   async createBoardsAndBlocks(bab, description = "add", afterRedo, beforeUndo) {
     return manager.perform(
       async () => {
-        const res = await octoClient.createBoardsAndBlocks(bab);
+        const res = await DbClient.createBoardsAndBlocks(bab);
         const newBab = await res.json();
         await afterRedo?.(newBab);
         return newBab;
@@ -234,24 +230,24 @@ class Mutator {
 
         const boardIds = newBab.boards.map((b) => b.id);
         const blockIds = newBab.blocks.map((b) => b.id);
-        await octoClient.deleteBoardsAndBlocks(boardIds, blockIds);
+        await DbClient.deleteBoardsAndBlocks(boardIds, blockIds);
       },
       description,
       this.groupId
     );
   }
 
-  async updateBoard(newBoard, oldBoard, description) {
+  async updateBoard(board, currentBoard, description) {
     const [updatePatch, undoPatch] = createPatchesFromBoards(
-      newBoard,
-      oldBoard
+      board,
+      currentBoard
     );
     await manager.perform(
       async () => {
-        await octoClient.patchBoard(newBoard.id, updatePatch);
+        await DbClient.patchBoard(board.id, updatePatch);
       },
       async () => {
-        await octoClient.patchBoard(oldBoard.id, undoPatch);
+        await DbClient.patchBoard(currentBoard.id, undoPatch);
       },
       description,
       this.groupId
@@ -261,12 +257,12 @@ class Mutator {
   async deleteBoard(board, description, afterRedo, beforeUndo) {
     await manager.perform(
       async () => {
-        await octoClient.deleteBoard(board.id);
+        await DbClient.deleteBoard(board.id);
         await afterRedo?.(board);
       },
       async () => {
         await beforeUndo?.(board);
-        await octoClient.undeleteBoard(board.id);
+        await DbClient.undeleteBoard(board.id);
       },
       description,
       this.groupId
@@ -282,10 +278,10 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, blockId, { title: newTitle });
+        await DbClient.patchBlock(boardId, blockId, { title: newTitle });
       },
       async () => {
-        await octoClient.patchBlock(boardId, blockId, { title: oldTitle });
+        await DbClient.patchBlock(boardId, blockId, { title: oldTitle });
       },
       description,
       this.groupId
@@ -300,10 +296,10 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBoard(boardId, { title: newTitle });
+        await DbClient.patchBoard(boardId, { title: newTitle });
       },
       async () => {
-        await octoClient.patchBoard(boardId, { title: oldTitle });
+        await DbClient.patchBoard(boardId, { title: oldTitle });
       },
       description,
       this.groupId
@@ -319,12 +315,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, blockId, {
+        await DbClient.patchBlock(boardId, blockId, {
           updatedFields: { defaultTemplateId: templateId },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, blockId, {
+        await DbClient.patchBlock(boardId, blockId, {
           updatedFields: { defaultTemplateId: oldTemplateId },
         });
       },
@@ -341,12 +337,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, blockId, {
+        await DbClient.patchBlock(boardId, blockId, {
           updatedFields: { defaultTemplateId: "" },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, blockId, {
+        await DbClient.patchBlock(boardId, blockId, {
           updatedFields: { defaultTemplateId: oldTemplateId },
         });
       },
@@ -363,10 +359,10 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBoard(boardId, { icon });
+        await DbClient.patchBoard(boardId, { icon });
       },
       async () => {
-        await octoClient.patchBoard(boardId, { icon: oldIcon });
+        await DbClient.patchBoard(boardId, { icon: oldIcon });
       },
       description,
       this.groupId
@@ -382,12 +378,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, blockId, {
+        await DbClient.patchBlock(boardId, blockId, {
           updatedFields: { icon },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, blockId, {
+        await DbClient.patchBlock(boardId, blockId, {
           updatedFields: { icon: oldIcon },
         });
       },
@@ -405,10 +401,10 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBoard(boardId, { description: blockDescription });
+        await DbClient.patchBoard(boardId, { description: blockDescription });
       },
       async () => {
-        await octoClient.patchBoard(boardId, {
+        await DbClient.patchBoard(boardId, {
           description: oldBlockDescription,
         });
       },
@@ -432,10 +428,10 @@ class Mutator {
 
     await manager.perform(
       async () => {
-        await octoClient.patchBoard(boardId, { showDescription });
+        await DbClient.patchBoard(boardId, { showDescription });
       },
       async () => {
-        await octoClient.patchBoard(boardId, {
+        await DbClient.patchBoard(boardId, {
           showDescription: oldShowDescription,
         });
       },
@@ -453,12 +449,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, cardId, {
+        await DbClient.patchBlock(boardId, cardId, {
           updatedFields: { contentOrder },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, cardId, {
+        await DbClient.patchBlock(boardId, cardId, {
           updatedFields: { contentOrder: oldContentOrder },
         });
       },
@@ -470,10 +466,10 @@ class Mutator {
   async createBoardMember(member, description = "create board member") {
     await manager.perform(
       async () => {
-        await octoClient.createBoardMember(member);
+        await DbClient.createBoardMember(member);
       },
       async () => {
-        await octoClient.deleteBoardMember(member);
+        await DbClient.deleteBoardMember(member);
       },
       description,
       this.groupId
@@ -487,10 +483,10 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.updateBoardMember(newMember);
+        await DbClient.updateBoardMember(newMember);
       },
       async () => {
-        await octoClient.updateBoardMember(oldMember);
+        await DbClient.updateBoardMember(oldMember);
       },
       description,
       this.groupId
@@ -500,12 +496,12 @@ class Mutator {
   async deleteBoardMember(member, description = "delete board member") {
     await manager.perform(
       async () => {
-        await octoClient.deleteBoardMember(member);
+        await DbClient.deleteBoardMember(member);
         store.dispatch(removeBoardUsersById([member.userId]));
       },
       async () => {
-        await octoClient.createBoardMember(member);
-        const user = await octoClient.getUser(member.userId);
+        await DbClient.createBoardMember(member);
+        const user = await DbClient.getUser(member.userId);
         if (user) {
           store.dispatch(addBoardUsers([user]));
         }
@@ -522,7 +518,7 @@ class Mutator {
     }
 
     const newTemplate = template || {
-      id: Utils.newGuid(IDType.BlockID),
+      id: Utils.newGuid(IdentityType.BlockId),
       name: "New Property",
       type: "text",
       options: [],
@@ -530,13 +526,13 @@ class Mutator {
 
     const oldBlocks = [];
     const oldBoard = board;
-    const newBoard = createBoard(board);
+    const nextBoard = newBoard(board);
 
     const startIndex = index >= 0 ? index : board.cardProperties.length;
     if (index >= 0) {
-      newBoard.cardProperties.splice(startIndex, 0, newTemplate);
+      nextBoard.cardProperties.splice(startIndex, 0, newTemplate);
     } else {
-      newBoard.cardProperties.push(newTemplate);
+      nextBoard.cardProperties.push(newTemplate);
     }
 
     if (activeView.fields.viewType === "table") {
@@ -559,7 +555,7 @@ class Mutator {
       changedBlockIDs.push(activeView.id);
 
       const [updatePatch, undoPatch] = createPatchesFromBoardsAndBlocks(
-        newBoard,
+        nextBoard,
         oldBoard,
         changedBlockIDs,
         changedBlocks,
@@ -567,16 +563,16 @@ class Mutator {
       );
       await manager.perform(
         async () => {
-          await octoClient.patchBoardsAndBlocks(updatePatch);
+          await DbClient.patchBoardsAndBlocks(updatePatch);
         },
         async () => {
-          await octoClient.patchBoardsAndBlocks(undoPatch);
+          await DbClient.patchBoardsAndBlocks(undoPatch);
         },
         "add column",
         this.groupId
       );
     } else {
-      this.updateBoard(newBoard, oldBoard, "add property");
+      this.updateBoard(nextBoard, oldBoard, "add property");
     }
 
     return newTemplate.id;
@@ -590,22 +586,24 @@ class Mutator {
     const oldBlocks = [];
     const oldBoard = board;
 
-    const newBoard = createBoard(board);
+    const nextBoard = newBoard(board);
     const changedBlocks = [];
     const changedBlockIDs = [];
-    const index = newBoard.cardProperties.findIndex((o) => o.id === propertyId);
+    const index = nextBoard.cardProperties.findIndex(
+      (o) => o.id === propertyId
+    );
     if (index === -1) {
       Logger.assertRefusal(`Cannot find template with id: ${propertyId}`);
       return;
     }
-    const srcTemplate = newBoard.cardProperties[index];
+    const srcTemplate = nextBoard.cardProperties[index];
     const newTemplate = {
-      id: Utils.newGuid(IDType.BlockID),
+      id: Utils.newGuid(IdentityType.BlockId),
       name: `${srcTemplate.name} copy`,
       type: srcTemplate.type,
       options: srcTemplate.options.slice(),
     };
-    newBoard.cardProperties.splice(index + 1, 0, newTemplate);
+    nextBoard.cardProperties.splice(index + 1, 0, newTemplate);
 
     let description = "duplicate property";
     if (activeView.fields.viewType === "table") {
@@ -618,7 +616,7 @@ class Mutator {
 
       description = "duplicate column";
       const [updatePatch, undoPatch] = createPatchesFromBoardsAndBlocks(
-        newBoard,
+        nextBoard,
         oldBoard,
         changedBlockIDs,
         changedBlocks,
@@ -626,16 +624,16 @@ class Mutator {
       );
       await manager.perform(
         async () => {
-          await octoClient.patchBoardsAndBlocks(updatePatch);
+          await DbClient.patchBoardsAndBlocks(updatePatch);
         },
         async () => {
-          await octoClient.patchBoardsAndBlocks(undoPatch);
+          await DbClient.patchBoardsAndBlocks(undoPatch);
         },
         description,
         this.groupId
       );
     } else {
-      this.updateBoard(newBoard, oldBoard, description);
+      this.updateBoard(nextBoard, oldBoard, description);
     }
   }
 
@@ -647,15 +645,15 @@ class Mutator {
     Utils.log(`srcIndex: ${srcIndex}, destIndex: ${destIndex}`);
     newValue.splice(destIndex, 0, newValue.splice(srcIndex, 1)[0]);
 
-    const newBoard = createBoard(board);
-    newBoard.cardProperties = newValue;
+    const nextBoard = newBoard(board);
+    nextBoard.cardProperties = newValue;
 
-    await this.updateBoard(newBoard, board, "reorder properties");
+    await this.updateBoard(nextBoard, board, "reorder properties");
   }
 
   async deleteProperty(board, views, cards, propertyId) {
-    const newBoard = createBoard(board);
-    newBoard.cardProperties = board.cardProperties.filter(
+    const nextBoard = newBoard(board);
+    nextBoard.cardProperties = board.cardProperties.filter(
       (o) => o.id !== propertyId
     );
 
@@ -678,15 +676,15 @@ class Mutator {
       if (card.fields.properties[propertyId]) {
         oldBlocks.push(card);
 
-        const newCard = createCard(card);
-        delete newCard.fields.properties[propertyId];
-        changedBlocks.push(newCard);
-        changedBlockIDs.push(newCard.id);
+        const nCard = newCard(card);
+        delete nCard.fields.properties[propertyId];
+        changedBlocks.push(nCard);
+        changedBlockIDs.push(nCard.id);
       }
     });
 
     const [updatePatch, undoPatch] = createPatchesFromBoardsAndBlocks(
-      newBoard,
+      nextBoard,
       board,
       changedBlockIDs,
       changedBlocks,
@@ -694,10 +692,10 @@ class Mutator {
     );
     await manager.perform(
       async () => {
-        await octoClient.patchBoardsAndBlocks(updatePatch);
+        await DbClient.patchBoardsAndBlocks(updatePatch);
       },
       async () => {
-        await octoClient.patchBoardsAndBlocks(undoPatch);
+        await DbClient.patchBoardsAndBlocks(undoPatch);
       },
       "delete property",
       this.groupId
@@ -710,16 +708,16 @@ class Mutator {
     newProperties,
     description = "update card properties"
   ) {
-    const [updatePatch, undoPatch] = createCardPropertiesPatches(
+    const [updatePatch, undoPatch] = newCardPropertiesPatches(
       newProperties,
       oldProperties
     );
     await manager.perform(
       async () => {
-        await octoClient.patchBoard(boardId, updatePatch);
+        await DbClient.patchBoard(boardId, updatePatch);
       },
       async () => {
-        await octoClient.patchBoard(boardId, undoPatch);
+        await DbClient.patchBoard(boardId, undoPatch);
       },
       description,
       this.groupId
@@ -843,13 +841,13 @@ class Mutator {
       return;
     }
 
-    const newCard = createCard(card);
+    const nextCard = newCard(card);
     if (value) {
-      newCard.fields.properties[propertyId] = value;
+      nextCard.fields.properties[propertyId] = value;
     } else {
-      delete newCard.fields.properties[propertyId];
+      delete nextCard.fields.properties[propertyId];
     }
-    await this.updateBlock(boardId, newCard, card, description);
+    await this.updateBlock(boardId, nextCard, card, description);
   }
 
   async changePropertyTypeAndName(
@@ -866,9 +864,8 @@ class Mutator {
       return;
     }
 
-    const oldBoard = board;
-    const newBoard = createBoard(board);
-    const newTemplate = newBoard.cardProperties.find(
+    const nextBoard = newBoard(board);
+    const newTemplate = nextBoard.cardProperties.find(
       (o) => o.id === propertyTemplate.id
     );
 
@@ -902,18 +899,18 @@ class Mutator {
             const newValue = isNewTypeSelectOrMulti
               ? propertyTemplate.options.find((o) => o.id === oldValue)?.id
               : propertyTemplate.options.find((o) => o.id === oldValue)?.value;
-            const newCard = createCard(card);
+            const nextCard = newCard(card);
 
             if (newValue) {
-              newCard.fields.properties[propertyTemplate.id] =
+              nextCard.fields.properties[propertyTemplate.id] =
                 newType === "multiSelect" ? [newValue] : newValue;
             } else {
               // This was an invalid select option, so delete it
-              delete newCard.fields.properties[propertyTemplate.id];
+              delete nextCard.fields.properties[propertyTemplate.id];
             }
 
-            newBlocks.push(newCard);
-            newBlockIDs.push(newCard.id);
+            newBlocks.push(nextCard);
+            newBlockIDs.push(nextCard.id);
             oldBlocks.push(card);
           }
 
@@ -928,19 +925,19 @@ class Mutator {
             let option = newTemplate.options.find((o) => o.value === oldValue);
             if (!option) {
               option = {
-                id: Utils.newGuid(IDType.None),
+                id: Utils.newGuid(IdentityType.None),
                 value: oldValue,
                 color: "propColorDefault",
               };
               newTemplate.options.push(option);
             }
 
-            const newCard = createCard(card);
-            newCard.fields.properties[propertyTemplate.id] =
+            const nextCard = newCard(card);
+            nextCard.fields.properties[propertyTemplate.id] =
               newType === "multiSelect" ? [option.id] : option.id;
 
-            newBlocks.push(newCard);
-            newBlockIDs.push(newCard.id);
+            newBlocks.push(nextCard);
+            newBlockIDs.push(nextCard.id);
             oldBlocks.push(card);
           }
         }
@@ -949,7 +946,7 @@ class Mutator {
 
     if (newBlockIDs.length > 0) {
       const [updatePatch, undoPatch] = createPatchesFromBoardsAndBlocks(
-        newBoard,
+        nextBoard,
         board,
         newBlockIDs,
         newBlocks,
@@ -957,16 +954,16 @@ class Mutator {
       );
       await manager.perform(
         async () => {
-          await octoClient.patchBoardsAndBlocks(updatePatch);
+          await DbClient.patchBoardsAndBlocks(updatePatch);
         },
         async () => {
-          await octoClient.patchBoardsAndBlocks(undoPatch);
+          await DbClient.patchBoardsAndBlocks(undoPatch);
         },
         "change property type and name",
         this.groupId
       );
     } else {
-      this.updateBoard(newBoard, oldBoard, "change property name");
+      this.updateBoard(nextBoard, board, "change property name");
     }
   }
 
@@ -975,12 +972,12 @@ class Mutator {
   async changeViewSortOptions(boardId, viewId, oldSortOptions, sortOptions) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { sortOptions },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { sortOptions: oldSortOptions },
         });
       },
@@ -992,12 +989,12 @@ class Mutator {
   async changeViewFilter(boardId, viewId, oldFilter, filter) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { filter },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { filter: oldFilter },
         });
       },
@@ -1009,12 +1006,12 @@ class Mutator {
   async changeViewGroupById(boardId, viewId, oldGroupById, groupById) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { groupById },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { groupById: oldGroupById },
         });
       },
@@ -1031,12 +1028,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { dateDisplayPropertyId },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { dateDisplayPropertyId: oldDateDisplayPropertyId },
         });
       },
@@ -1062,12 +1059,12 @@ class Mutator {
 
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, view.id, {
+        await DbClient.patchBlock(boardId, view.id, {
           updatedFields: { visiblePropertyIds: newOrder },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, view.id, {
+        await DbClient.patchBlock(boardId, view.id, {
           updatedFields: { visiblePropertyIds: oldVisiblePropertyIds },
         });
       },
@@ -1085,12 +1082,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { visiblePropertyIds },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { visiblePropertyIds: oldVisiblePropertyIds },
         });
       },
@@ -1108,12 +1105,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { visibleOptionIds },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { visibleOptionIds: oldVisibleOptionIds },
         });
       },
@@ -1131,12 +1128,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { hiddenOptionIds },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { hiddenOptionIds: oldHiddenOptionIds },
         });
       },
@@ -1154,12 +1151,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { kanbanCalculations: calculations },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { kanbanCalculations: oldCalculations },
         });
       },
@@ -1177,12 +1174,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { columnCalculations: calculations },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { columnCalculations: oldCalculations },
         });
       },
@@ -1200,12 +1197,12 @@ class Mutator {
   ) {
     await manager.perform(
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { cardOrder },
         });
       },
       async () => {
-        await octoClient.patchBlock(boardId, viewId, {
+        await DbClient.patchBlock(boardId, viewId, {
           updatedFields: { cardOrder: oldCardOrder },
         });
       },
@@ -1262,19 +1259,19 @@ class Mutator {
   }
 
   async createCategory(category) {
-    await octoClient.createSidebarCategory(category);
+    await DbClient.createSidebarCategory(category);
   }
 
   async deleteCategory(teamID, categoryID) {
-    await octoClient.deleteSidebarCategory(teamID, categoryID);
+    await DbClient.deleteSidebarCategory(teamID, categoryID);
   }
 
   async updateCategory(category) {
-    await octoClient.updateSidebarCategory(category);
+    await DbClient.updateSidebarCategory(category);
   }
 
   async moveBoardToCategory(teamID, blockID, toCategoryID, fromCategoryID) {
-    await octoClient.moveBoardToCategory(
+    await DbClient.moveBoardToCategory(
       teamID,
       blockID,
       toCategoryID,
@@ -1285,10 +1282,10 @@ class Mutator {
   async followBlock(blockId, blockType, userId) {
     await manager.perform(
       async () => {
-        await octoClient.followBlock(blockId, blockType, userId);
+        await DbClient.followBlock(blockId, blockType, userId);
       },
       async () => {
-        await octoClient.unfollowBlock(blockId, blockType, userId);
+        await DbClient.unfollowBlock(blockId, blockType, userId);
       },
       "follow block",
       this.groupId
@@ -1298,10 +1295,10 @@ class Mutator {
   async unfollowBlock(blockId, blockType, userId) {
     await manager.perform(
       async () => {
-        await octoClient.unfollowBlock(blockId, blockType, userId);
+        await DbClient.unfollowBlock(blockId, blockType, userId);
       },
       async () => {
-        await octoClient.followBlock(blockId, blockType, userId);
+        await DbClient.followBlock(blockId, blockType, userId);
       },
       "follow block",
       this.groupId
@@ -1309,7 +1306,7 @@ class Mutator {
   }
 
   async patchUserConfig(userID, patch) {
-    return octoClient.patchUserConfig(userID, patch);
+    return DbClient.patchUserConfig(userID, patch);
   }
 
   // Duplicate
@@ -1326,7 +1323,7 @@ class Mutator {
   ) {
     return manager.perform(
       async () => {
-        const blocks = await octoClient.duplicateBlock(
+        const blocks = await DbClient.duplicateBlock(
           boardId,
           cardId,
           asTemplate
@@ -1348,7 +1345,7 @@ class Mutator {
 
           // If the template doesn't specify an icon, initialize it to a random one
           if (!newRootBlock.fields.icon && UserSettings.prefillRandomIcons) {
-            newRootBlock.fields.icon = BlockIcons.shared.randomIcon();
+            newRootBlock.fields.icon = BlockIcons.instance.randomIcon();
           }
         }
         const patch = {
@@ -1361,11 +1358,7 @@ class Mutator {
           },
           title: newRootBlock.title,
         };
-        await octoClient.patchBlock(
-          newRootBlock.boardId,
-          newRootBlock.id,
-          patch
-        );
+        await DbClient.patchBlock(newRootBlock.boardId, newRootBlock.id, patch);
         if (blocks) {
           updateAllBoardsAndBlocks([], blocks);
           await afterRedo?.(newRootBlock.id);
@@ -1376,7 +1369,7 @@ class Mutator {
         await beforeUndo?.();
         const newRootBlock = newBlocks && newBlocks[0];
         if (newRootBlock) {
-          await octoClient.deleteBlock(newRootBlock.boardId, newRootBlock.id);
+          await DbClient.deleteBlock(newRootBlock.boardId, newRootBlock.id);
         }
       },
       description,
@@ -1394,7 +1387,7 @@ class Mutator {
   ) {
     return manager.perform(
       async () => {
-        const boardsAndBlocks = await octoClient.duplicateBoard(
+        const boardsAndBlocks = await DbClient.duplicateBoard(
           boardId,
           asTemplate,
           toTeam
@@ -1412,10 +1405,10 @@ class Mutator {
         await beforeUndo?.();
         const awaits = [];
         for (const block of boardsAndBlocks.blocks) {
-          awaits.push(octoClient.deleteBlock(block.boardId, block.id));
+          awaits.push(DbClient.deleteBlock(block.boardId, block.id));
         }
         for (const board of boardsAndBlocks.boards) {
-          awaits.push(octoClient.deleteBoard(board.id));
+          awaits.push(DbClient.deleteBoard(board.id));
         }
         await Promise.all(awaits);
       },
@@ -1434,10 +1427,10 @@ class Mutator {
   ) {
     return manager.perform(
       async () => {
-        await octoClient.moveBlockTo(blockId, where, dstBlockId);
+        await DbClient.moveBlockTo(blockId, where, dstBlockId);
       },
       async () => {
-        await octoClient.moveBlockTo(blockId, srcWhere, srcBlockId);
+        await DbClient.moveBlockTo(blockId, srcWhere, srcBlockId);
       },
       description,
       this.groupId
@@ -1461,7 +1454,7 @@ class Mutator {
   }
 
   async addEmptyBoard(teamId, afterRedo, beforeUndo) {
-    const board = createBoard();
+    const board = newBoard();
     board.teamId = teamId;
 
     const view = createBoardView();
@@ -1474,16 +1467,16 @@ class Mutator {
       { boards: [board], blocks: [view] },
       "add board",
       async (bab) => {
-        const newBoard = bab.boards[0];
+        const firstBoard = bab.boards[0];
 
-        await afterRedo(newBoard?.id || "");
+        await afterRedo(firstBoard?.id || "");
       },
       beforeUndo
     );
   }
 
   async addEmptyBoardTemplate(teamId, afterRedo, beforeUndo) {
-    const boardTemplate = createBoard();
+    const boardTemplate = newBoard();
     boardTemplate.isTemplate = true;
     boardTemplate.teamId = teamId;
     boardTemplate.title = t({
@@ -1501,24 +1494,24 @@ class Mutator {
       { boards: [boardTemplate], blocks: [view] },
       "add board template",
       async (bab) => {
-        const newBoard = bab.boards[0];
+        const firstBoard = bab.boards[0];
 
-        afterRedo(newBoard?.id || "");
+        afterRedo(firstBoard?.id || "");
       },
       beforeUndo
     );
   }
 
-  async exportBoardArchive(boardID) {
-    return octoClient.exportBoardArchive(boardID);
+  async exportBoardArchive(id) {
+    return DbClient.exportBoardArchive(id);
   }
 
-  async exportFullArchive(teamID) {
-    return octoClient.exportFullArchive(teamID);
+  async exportFullArchive(id) {
+    return DbClient.exportFullArchive(id);
   }
 
-  async importFullArchive(file) {
-    return octoClient.importFullArchive(file);
+  async importAllArchiveToFile(file) {
+    return DbClient.importAllArchiveToFile(file);
   }
 
   get canUndo() {
@@ -1529,12 +1522,12 @@ class Mutator {
     return manager.canRedo;
   }
 
-  get undoDescription() {
-    return manager.description;
+  get undoNote() {
+    return manager.note;
   }
 
-  get redoDescription() {
-    return manager.redoDescription;
+  get redoNote() {
+    return manager.redoNote;
   }
 
   async undo() {

@@ -1,6 +1,3 @@
-// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See LICENSE.txt for license information.
-
 import difference from "lodash/difference";
 
 import { Utils } from "../utils";
@@ -33,7 +30,7 @@ const blockTypes = [
 function createBlock(block) {
   const now = Date.now();
   return {
-    id: block?.id || Utils.newGuid(Utils.blockTypeToIDType(block?.type)),
+    id: block?.id || Utils.newGuid(Utils.blockTypeToIdentityType(block?.type)),
     schema: 1,
     boardId: block?.boardId || "",
     parentId: block?.parentId || "",
@@ -45,7 +42,7 @@ function createBlock(block) {
     createAt: block?.createAt || now,
     updateAt: block?.updateAt || now,
     deleteAt: block?.deleteAt || 0,
-    limited: Boolean(block?.limited),
+    limited: !!block?.limited,
   };
 }
 

@@ -1,8 +1,8 @@
 import { notifySettingsChanged } from "./nativeApp";
-import { Utils } from "./utils";
+import { Logger } from "./logger";
 
 export const UserSettingKey = {
-  Language: "language",
+  Language: "lang",
   Theme: "theme",
   LastTeamId: "lastTeamId",
   LastBoardId: "lastBoardId",
@@ -18,11 +18,11 @@ export const UserSettingKey = {
 };
 
 export class UserSettings {
-  getKey(key) {
+  static get(key) {
     return localStorage.getItem(key);
   }
 
-  setKey(key, value) {
+  static set(key, value) {
     if (!Object.values(UserSettingKey).includes(key)) {
       return;
     }
@@ -34,31 +34,31 @@ export class UserSettings {
     notifySettingsChanged(key);
   }
 
-  get language() {
+  static get language() {
     return UserSettings.get(UserSettingKey.Language);
   }
 
-  set language(newValue) {
+  static set language(newValue) {
     UserSettings.set(UserSettingKey.Language, newValue);
   }
 
-  get Theme() {
+  static get theme() {
     return UserSettings.get(UserSettingKey.Theme);
   }
 
-  set Theme(newValue) {
+  static set theme(newValue) {
     UserSettings.set(UserSettingKey.Theme, newValue);
   }
 
-  get lastTeamId() {
+  static get lastTeamId() {
     return UserSettings.get(UserSettingKey.LastTeamId);
   }
 
-  set lastTeamId(newValue) {
+  static set lastTeamId(newValue) {
     UserSettings.set(UserSettingKey.LastTeamId, newValue);
   }
 
-  get lastBoardId() {
+  static get lastBoardId() {
     let rawData = UserSettings.get(UserSettingKey.LastBoardId) || "{}";
     if (rawData[0] !== "{") {
       rawData = "{}";
@@ -74,21 +74,24 @@ export class UserSettings {
     return mapping;
   }
 
-  set lastTeamID(teamID) {
-    UserSettings.set(UserSettingKey.LastTeamId, teamID);
+  /**
+   * @param {number} id
+   */
+  static setLastTeamId(id) {
+    UserSettings.set(UserSettingKey.LastTeamId, id);
   }
 
-  setLastBoardID(teamID, boardID) {
+  static setLastBoardId(teamId, boardId) {
     const data = this.lastBoardId;
-    if (boardID === null) {
-      delete data[teamID];
+    if (boardId === null) {
+      delete data[teamId];
     } else {
-      data[teamID] = boardID;
+      data[teamId] = boardId;
     }
     UserSettings.set(UserSettingKey.LastBoardId, JSON.stringify(data));
   }
 
-  get lastViewId() {
+  static get lastViewId() {
     const rawData = UserSettings.get(UserSettingKey.LastViewId) || "{}";
     let mapping;
     try {
@@ -100,62 +103,63 @@ export class UserSettings {
     return mapping;
   }
 
-  setLastViewId(boardID, viewID) {
+  static setLastViewId(boardId, viewId) {
     const data = this.lastViewId;
-    if (viewID === null) {
-      delete data[boardID];
+    if (viewId === null) {
+      data[boardId] = undefined;
     } else {
-      data[boardID] = viewID;
+      data[boardId] = viewId;
     }
+
     UserSettings.set(UserSettingKey.LastViewId, JSON.stringify(data));
   }
 
-  get prefillRandomIcons() {
+  static get prefillRandomIcons() {
     return UserSettings.get(UserSettingKey.RandomIcons) !== "false";
   }
 
-  set prefillRandomIcons(newValue) {
+  static set prefillRandomIcons(newValue) {
     UserSettings.set(UserSettingKey.RandomIcons, JSON.stringify(newValue));
   }
 
-  getEmojiMartSetting(key) {
+  static getEmojiMartSetting(key) {
     const prefixed = `emoji-mart.${key}`;
-    Utils.assert(Object.values(UserSettingKey).includes(prefixed));
+    Logger.assert(Object.values(UserSettingKey).includes(prefixed));
     const json = UserSettings.get(prefixed);
 
     return json ? JSON.parse(json) : null;
   }
 
-  setEmojiMartSetting(key, value) {
+  static setEmojiMartSetting(key, value) {
     const prefixed = `emoji-mart.${key}`;
-    Utils.assert(Object.values(UserSettingKey).includes(prefixed));
+    Logger.assert(Object.values(UserSettingKey).includes(prefixed));
     UserSettings.set(prefixed, JSON.stringify(value));
   }
 
-  get mobileWarningClosed() {
+  static get mobileWarningClosed() {
     return UserSettings.get(UserSettingKey.MobileWarningClosed) === "true";
   }
 
-  set mobileWarningClosed(newValue) {
+  static set mobileWarningClosed(newValue) {
     UserSettings.set(UserSettingKey.MobileWarningClosed, String(newValue));
   }
 
-  get hideCloudMessage() {
+  static get hideCloudMessage() {
     return localStorage.getItem(UserSettingKey.HideCloudMessage) === "true";
   }
 
-  set hideCloudMessage(newValue) {
+  static set hideCloudMessage(newValue) {
     localStorage.setItem(
       UserSettingKey.HideCloudMessage,
       JSON.stringify(newValue)
     );
   }
 
-  get nameFormat() {
+  static get nameFormat() {
     return UserSettings.get(UserSettingKey.NameFormat);
   }
 
-  set nameFormat(newValue) {
+  static set nameFormat(newValue) {
     UserSettings.set(UserSettingKey.NameFormat, newValue);
   }
 }

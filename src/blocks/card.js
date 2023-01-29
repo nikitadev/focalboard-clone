@@ -1,6 +1,6 @@
 import { createBlock } from "./block";
 
-function createCard(block) {
+function newCard(block) {
   const contentOrder = [];
   const contentIds = block?.fields?.contentOrder?.filter((id) => id !== null);
 
@@ -25,4 +25,4 @@ function createCard(block) {
   };
 }
 
-export { createCard };
+export { newCard };

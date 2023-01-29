@@ -1,6 +1,7 @@
 import difference from "lodash/difference";
+import moment from "moment";
 
-import { Utils, IDType } from "../utils";
+import { Utils, IdentityType } from "../utils";
 
 import { createPatchesFromBlocks } from "./block";
 
@@ -18,13 +19,13 @@ const MemberRole = {
 
 // type PropertyTypeEnum = 'text' | 'number' | 'select' | 'multiSelect' | 'date' | 'person' | 'multiPerson' | 'file' | 'checkbox' | 'url' | 'email' | 'phone' | 'createdTime' | 'createdBy' | 'updatedTime' | 'updatedBy' | 'unknown';
 
-function createBoard(board) {
-  const now = Date.now();
+function newBoard(board) {
+  const now = moment();
   let cardProperties = [];
   const selectProperties = cardProperties.find((o) => o.type === "select");
   if (!selectProperties) {
     const property = {
-      id: Utils.newGuid(IDType.BlockID),
+      id: Utils.newGuid(IdentityType.BlockId),
       name: "Status",
       type: "select",
       options: [],
@@ -44,7 +45,7 @@ function createBoard(board) {
   }
 
   return {
-    id: board?.id || Utils.newGuid(IDType.Board),
+    id: board?.id || Utils.newGuid(IdentityType.Board),
     teamId: board?.teamId || "",
     channelId: board?.channelId || "",
     createdBy: board?.createdBy || "",
@@ -103,7 +104,7 @@ function isPropertyEqual(propA, propB) {
   return true;
 }
 
-function createCardPropertiesPatches(newCardProperties, oldCardProperties) {
+function newCardPropertiesPatches(newCardProperties, oldCardProperties) {
   const newDeletedCardProperties = getPropertiesDifference(
     newCardProperties,
     oldCardProperties
@@ -187,10 +188,7 @@ function createPatchesFromBoards(newBoard, oldBoard) {
   });
 
   const [cardPropertiesPatch, cardPropertiesUndoPatch] =
-    createCardPropertiesPatches(
-      newBoard.cardProperties,
-      oldBoard.cardProperties
-    );
+    newCardPropertiesPatches(newBoard.cardProperties, oldBoard.cardProperties);
 
   return [
     {
@@ -211,7 +209,7 @@ function createPatchesFromBoards(newBoard, oldBoard) {
 function createPatchesFromBoardsAndBlocks(
   updatedBoard,
   oldBoard,
-  updatedBlockIDs,
+  updatedBlockIds,
   updatedBlocks,
   oldBlocks
 ) {
@@ -232,16 +230,16 @@ function createPatchesFromBoardsAndBlocks(
   );
 
   const updatePatch = {
-    blockIDs: updatedBlockIDs,
+    blockIds: updatedBlockIds,
     blockPatches: blockUpdatePatches,
-    boardIDs: [updatedBoard.id],
+    boardIds: [updatedBoard.id],
     boardPatches: [boardUpdatePatch],
   };
 
   const undoPatch = {
-    blockIDs: updatedBlockIDs,
+    blockIds: updatedBlockIds,
     blockPatches: blockUndoPatches,
-    boardIDs: [updatedBoard.id],
+    boardIds: [updatedBoard.id],
     boardPatches: [boardUndoPatch],
   };
 
@@ -249,11 +247,11 @@ function createPatchesFromBoardsAndBlocks(
 }
 
 export {
-  createBoard,
+  newBoard,
   BoardTypeOpen,
   BoardTypePrivate,
   MemberRole,
   createPatchesFromBoards,
   createPatchesFromBoardsAndBlocks,
-  createCardPropertiesPatches,
+  newCardPropertiesPatches,
 };

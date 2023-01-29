@@ -36,7 +36,7 @@ function errorDefFromId(id) {
         message: "Back to Home",
       });
       errDef.button1Redirect = () => {
-        UserSettings.setLastTeamID(null);
+        UserSettings.setLastTeamId(null);
         return window.location.origin;
       };
       errDef.button1Fill = true;

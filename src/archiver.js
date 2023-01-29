@@ -1,27 +1,26 @@
 import mutator from "./mutator";
-import { Utils } from "./utils";
-
-let window;
+import { Logger } from "./logger";
+import moment from "moment";
 
 class Archiver {
   static async exportBoardArchive(board) {
-    this.exportArchive(mutator.exportBoardArchive(board.id));
+    Archiver.export(mutator.exportBoardArchive(board.id));
   }
 
   static async exportFullArchive(teamID) {
-    this.exportArchive(mutator.exportFullArchive(teamID));
+    Archiver.export(mutator.exportFullArchive(teamID));
   }
 
-  static #exportArchive(prom) {
+  static #export(prom) {
     prom.then((response) => {
       response.blob().then((blob) => {
         const link = document.createElement("a");
         link.style.display = "none";
 
-        const date = new Date();
-        const filename = `archive-${date.getFullYear()}-${
-          date.getMonth() + 1
-        }-${date.getDate()}.boardarchive`;
+        const date = moment();
+        const filename = `archive-${date.toDate().getFullYear()}-${
+          date.toDate().getMonth() + 1
+        }-${date}.boardarchive`;
 
         const file = new Blob([blob], { type: "application/octet-stream" });
         link.href = URL.createObjectURL(file);
@@ -41,18 +40,14 @@ class Archiver {
   }
 
   static async #importArchiveFromFile(file) {
-    const response = await mutator.importFullArchive(file);
+    const response = await mutator.importAllArchiveToFile(file);
     if (response.status !== 200) {
-      Utils.log("ERROR importing archive: " + response.text());
+      Logger.log("ERROR importing archive: " + response.text());
     }
   }
 
-  static isValidBlock(block) {
-    if (!block.id || !block.boardId) {
-      return false;
-    }
-
-    return true;
+  static isBlockExists(block) {
+    return !block.id || !block.boardId ? false : true;
   }
 
   static importFullArchive(onComplete) {

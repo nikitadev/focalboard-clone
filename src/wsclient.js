@@ -1,6 +1,7 @@
 import { Utils } from "./utils";
 
-import { OctoUtils } from "./octoUtils";
+import { DbUtils } from "./dbUtils";
+import { Logger } from "./logger";
 
 export const ACTION_UPDATE_BOARD = "UPDATE_BOARD";
 export const ACTION_UPDATE_MEMBER = "UPDATE_MEMBER";
@@ -18,7 +19,7 @@ export const ACTION_UPDATE_SUBSCRIPTION = "UPDATE_SUBSCRIPTION";
 export const ACTION_UPDATE_CARD_LIMIT_TIMESTAMP = "UPDATE_CARD_LIMIT_TIMESTAMP";
 export const ACTION_REORDER_CATEGORIES = "REORDER_CATEGORIES";
 
-class WSClient {
+class WebSocketClient {
   ws = null;
   client = null;
   onPluginReconnect = null;
@@ -68,7 +69,7 @@ class WSClient {
     );
 
     if (!this.logged) {
-      Utils.log(`WSClient serverUrl: ${baseURL}`);
+      Logger.log(`WSClient serverUrl: ${baseURL}`);
       this.logged = true;
     }
 
@@ -84,7 +85,7 @@ class WSClient {
     this.pluginVersion = pluginVersion;
     this.clientPrefix = `custom_${pluginId}_`;
     this.client = client;
-    Utils.log(`WSClient initialised for plugin id "${pluginId}"`);
+    Logger.log(`WSClient initialised for plugin id "${pluginId}"`);
   }
 
   resetSubscriptions() {
@@ -92,7 +93,7 @@ class WSClient {
   }
 
   subscribe() {
-    Utils.log("Sending commands for the registered subscriptions");
+    Logger.log("Sending commands for the registered subscriptions");
     Object.keys(this.subscriptions.Teams).forEach((teamId) =>
       this.sendSubscribeToTeamCommand(teamId)
     );
@@ -108,7 +109,9 @@ class WSClient {
 
       this.ws?.send(JSON.stringify(command));
     } catch (e) {
-      Utils.logError(`WSClient failed to send command ${command.action}: ${e}`);
+      Logger.logError(
+        `WSClient failed to send command ${command.action}: ${e}`
+      );
     }
   }
 
@@ -255,7 +258,7 @@ class WSClient {
     if (this.client !== null) {
       // configure the Mattermost websocket client callbacks
       const onConnect = () => {
-        Utils.log("WSClient in plugin mode, reusing Mattermost WS connection");
+        Logger.log("WSClient in plugin mode, reusing Mattermost WS connection");
 
         // if there are any subscriptions set by the
         // components, send their subscribe messages
@@ -268,7 +271,7 @@ class WSClient {
       };
 
       const onReconnect = () => {
-        Utils.logWarn("WSClient reconnected");
+        Logger.logWarn("WSClient reconnected");
 
         onConnect();
         for (const handler of this.onReconnect) {
@@ -278,7 +281,7 @@ class WSClient {
       this.onPluginReconnect = onReconnect;
 
       const onClose = (connectFailCount) => {
-        Utils.logError(
+        Logger.logError(
           `WSClient has been closed, connect fail count: ${connectFailCount}`
         );
 
@@ -289,7 +292,7 @@ class WSClient {
 
         if (!this.errorPollId) {
           this.errorPollId = setInterval(() => {
-            Utils.logWarn(
+            Logger.logWarn(
               `Polling websockets connection for state: ${this.client?.conn?.readyState}`
             );
             if (this.client?.conn?.readyState === 1) {
@@ -302,7 +305,7 @@ class WSClient {
       };
 
       const onError = (event) => {
-        Utils.logError(
+        Logger.logError(
           `WSClient websocket onerror. data: ${JSON.stringify(event)}`
         );
 
@@ -325,12 +328,12 @@ class WSClient {
       /\/$/,
       ""
     )}/ws`;
-    Utils.log(`WSClient open: ${wsServerUrl}`);
+    Logger.log(`WSClient open: ${wsServerUrl}`);
     const ws = new WebSocket(wsServerUrl);
     this.ws = ws;
 
     ws.onopen = () => {
-      Utils.log("WSClient webSocket opened.");
+      Logger.log("WSClient webSocket opened.");
       this.state = "open";
 
       if (this.token) {
@@ -345,19 +348,19 @@ class WSClient {
     };
 
     ws.onerror = (e) => {
-      Utils.logError(`WSClient websocket onerror. data: ${e}`);
+      Logger.logError(`WSClient websocket onerror. data: ${e}`);
       for (const handler of this.onError) {
         handler(this, e);
       }
     };
 
     ws.onclose = (e) => {
-      Utils.log(
+      Logger.log(
         `WSClient websocket onclose, code: ${e.code}, reason: ${e.reason}`
       );
       if (ws === this.ws) {
         // Unexpected close, re-open
-        Utils.logError("Unexpected close, re-opening websocket");
+        Logger.logError("Unexpected close, re-opening websocket");
         for (const handler of this.onStateChange) {
           handler(this, "close");
         }
@@ -375,14 +378,14 @@ class WSClient {
 
     ws.onmessage = (e) => {
       if (ws !== this.ws) {
-        Utils.log("Ignoring closed ws");
+        Logger.log("Ignoring closed ws");
         return;
       }
 
       try {
         const message = JSON.parse(e.data);
         if (message.error) {
-          Utils.logError(`Listener websocket error: ${message.error}`);
+          Logger.logError(`Listener websocket error: ${message.error}`);
           return;
         }
 
@@ -412,10 +415,10 @@ class WSClient {
             this.updateHandler(message);
             break;
           default:
-            Utils.logError(`Unexpected action: ${message.action}`);
+            Logger.logError(`Unexpected action: ${message.action}`);
         }
       } catch (err) {
-        Utils.log("message is not an object");
+        Logger.log("message is not an object");
       }
     };
   }
@@ -456,7 +459,7 @@ class WSClient {
   }
 
   updateSubscriptionHandler(message) {
-    Utils.log(
+    Logger.log(
       "updateSubscriptionHandler: " +
         message.action +
         "; blockId=" +
@@ -494,7 +497,7 @@ class WSClient {
           focalboardStatusChange.version
         ) > 0
       ) {
-        Utils.log("Boards plugin has been updated");
+        Logger.log("Boards plugin has been updated");
         this.onAppVersionChangeHandler(true);
       }
 
@@ -512,7 +515,7 @@ class WSClient {
         // has time to register the WS handler
         setTimeout(() => {
           if (this.onPluginReconnect) {
-            Utils.log("Reconnecting after plugin update");
+            Logger.log("Reconnecting after plugin update");
             this.onPluginReconnect();
           }
         }, 1000);
@@ -535,7 +538,7 @@ class WSClient {
 
   subscribeToTeam(teamId) {
     if (!this.subscriptions.Teams[teamId]) {
-      Utils.log(`First component subscribing to team ${teamId}`);
+      Logger.log(`First component subscribing to team ${teamId}`);
 
       if (this.hasConn()) {
         this.sendSubscribeToTeamCommand(teamId);
@@ -551,7 +554,7 @@ class WSClient {
 
   unsubscribeToTeam(teamId) {
     if (!this.subscriptions.Teams[teamId]) {
-      Utils.logError(
+      Logger.logError(
         "Component trying to unsubscribe to a team when no subscriptions are registered. Doing nothing"
       );
       return;
@@ -559,7 +562,7 @@ class WSClient {
 
     this.subscriptions.Teams[teamId] -= 1;
     if (this.subscriptions.Teams[teamId] === 0) {
-      Utils.log(`Last subscription to team ${teamId} being removed`);
+      Logger.log(`Last subscription to team ${teamId} being removed`);
       if (this.hasConn()) {
         this.sendUnsubscribeToTeamCommand(teamId);
       }
@@ -613,7 +616,7 @@ class WSClient {
       this.updatedData.Blocks = this.updatedData.Blocks.filter(
         (o) => o.id !== data.id
       );
-      this.updatedData.Blocks.push(OctoUtils.hydrateBlock(data));
+      this.updatedData.Blocks.push(DbUtils.hydrateBlock(data));
     } else if (type === "category") {
       this.updatedData.Categories = this.updatedData.Categories.filter(
         (c) => c.id !== data.id
@@ -652,30 +655,30 @@ class WSClient {
 
   #logUpdateNotification() {
     for (const block of this.updatedData.Blocks) {
-      Utils.log(`WSClient flush update block: ${block.id}`);
+      Logger.log(`WSClient flush update block: ${block.id}`);
     }
 
     for (const category of this.updatedData.Categories) {
-      Utils.log(`WSClient flush update category: ${category.id}`);
+      Logger.log(`WSClient flush update category: ${category.id}`);
     }
 
     for (const blockCategories of this.updatedData.BoardCategories) {
-      Utils.log(
+      Logger.log(
         `WSClient flush update blockCategory: ${blockCategories.boardID} ${blockCategories.categoryID}`
       );
     }
 
     for (const board of this.updatedData.Boards) {
-      Utils.log(`WSClient flush update board: ${board.id}`);
+      Logger.log(`WSClient flush update board: ${board.id}`);
     }
 
     for (const boardMember of this.updatedData.BoardMembers) {
-      Utils.log(
+      Logger.log(
         `WSClient flush update boardMember: ${boardMember.userId} ${boardMember.boardId}`
       );
     }
 
-    Utils.log(
+    Logger.log(
       `WSClient flush update categoryOrder: ${this.updatedData.CategoryOrder}`
     );
   }
@@ -722,7 +725,7 @@ class WSClient {
       return;
     }
 
-    Utils.log(`WSClient close: ${this.ws?.url}`);
+    Logger.log(`WSClient close: ${this.ws?.url}`);
 
     const ws = this.ws;
     this.ws = null;
@@ -749,13 +752,13 @@ class WSClient {
       try {
         ws?.websocket?.close();
       } catch {
-        Utils.log("WSClient unable to close the websocket");
+        Logger.log("WSClient unable to close the websocket");
       }
     }
   }
 }
 
-const wsClient = new WSClient();
+const webSocketClient = new WebSocketClient();
 
-export { WSClient };
-export default wsClient;
+export { WebSocketClient };
+export default webSocketClient;

@@ -4,8 +4,8 @@ import {
   createSelector,
 } from "@reduxjs/toolkit";
 
-import { default as client } from "../octoClient";
-import { parseUserProps } from "../userUtils";
+import { default as client } from "../dbClient";
+import { readProperties } from "../userUtils";
 
 import { Utils } from "../utils";
 
@@ -46,7 +46,7 @@ const usersSlice = createSlice({
   reducers: {
     setPerson: (state, action) => {
       state.person = action.payload;
-      state.loggedIn = !!state.me;
+      state.signedIn = !!state.person;
     },
     setBoardUsers: (state, action) => {
       state.boardUsers = action.payload.reduce((acc, user) => {
@@ -74,20 +74,20 @@ const usersSlice = createSlice({
       );
     },
     patchProps: (state, action) => {
-      state.config = parseUserProps(action.payload);
+      state.config = readProperties(action.payload);
     },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchPerson.fulfilled, (state, action) => {
-      state.me = action.payload.me || null;
-      state.loggedIn = !!state.me;
+      state.person = action.payload.person || null;
+      state.signedIn = !!state.person;
       if (action.payload.config) {
-        state.config = parseUserProps(action.payload.config);
+        state.config = readProperties(action.payload.config);
       }
     });
     builder.addCase(fetchPerson.rejected, (state) => {
-      state.me = null;
-      state.loggedIn = false;
+      state.person = null;
+      state.signedIn = false;
       state.config = {};
     });
 
@@ -97,7 +97,7 @@ const usersSlice = createSlice({
 
     builder.addCase(initialLoad.fulfilled, (state, action) => {
       if (action.payload.config) {
-        state.config = parseUserProps(action.payload.config);
+        state.config = readProperties(action.payload.config);
       }
     });
   },
@@ -131,13 +131,11 @@ export const getUser = (id) => {
 };
 
 export const getOnboardingTourStarted = createSelector(getConfig, (config) =>
-  !config || config.onboardingTourStarted
-    ? false
-    : !!config.onboardingTourStarted.value
+  config?.onboardingTourStarted ? false : !!config.onboardingTourStarted.value
 );
 
 export const getOnboardingTourStep = createSelector(getConfig, (config) =>
-  !config || config.onboardingTourStep ? "" : config.onboardingTourStep.value
+  config?.onboardingTourStep ? "" : config.onboardingTourStep.value
 );
 
 export const getOnboardingTourCategory = createSelector(getConfig, (config) =>
@@ -148,9 +146,7 @@ export const getCloudMessageCanceled = createSelector(
   getPerson,
   getConfig,
   (person, config) =>
-    !person
-      ? false
-      : person.id === "single-user"
+    person?.id === "single-user"
       ? UserSettings.hideCloudMessage
       : !!config.cloudMessageCanceled?.value
 );
@@ -159,14 +155,11 @@ export const getVersionMessageCanceled = createSelector(
   getPerson,
   getConfig,
   (person, config) => {
-    if (versionProperty && person) {
-      if (person.id === "single-user") {
-        return true;
-      }
-
-      return !!config[versionProperty]?.value;
-    }
-    return true;
+    return versionProperty && person
+      ? person.id === "single-user"
+        ? true
+        : !!config[versionProperty]?.value
+      : true;
   }
 );
 

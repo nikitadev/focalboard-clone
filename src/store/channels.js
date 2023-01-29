@@ -1,12 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-export const ChannelTypeOpen = "O";
-export const ChannelTypePrivate = "P";
-export const ChannelTypeDirectMessage = "D";
-export const ChannelTypeGroupMessage = "G";
-//const channelTypes = [ChannelTypeOpen, ChannelTypePrivate, ChannelTypeDirectMessage, ChannelTypeGroupMessage];
+export const ChannelType = {
+  Open: "O",
+  Private: "P",
+  DirectMessage: "D",
+  GroupMessage: "G",
+};
 
-const channelSlice = createSlice({
+const channelFragment = createSlice({
   name: "channels",
   initialState: {
     current: null,
@@ -23,7 +24,7 @@ const channelSlice = createSlice({
   },
 });
 
-export const { setChannel } = channelSlice.actions;
-export const { reducer } = channelSlice;
+export const { setChannel } = channelFragment.actions;
+export const { reducer } = channelFragment;
 
 export const getCurrentChannel = (state) => state.channels.current;

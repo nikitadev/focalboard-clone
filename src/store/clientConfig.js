@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-import { default as client } from "../octoClient";
+import { default as client } from "../DbClient";
 
 import { ShowUsername } from "../utils";
 

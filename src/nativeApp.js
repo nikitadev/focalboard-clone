@@ -13,11 +13,13 @@ export function importNativeAppSettings() {
   const messageType = importedKeys.length
     ? "didImportUserSettings"
     : "didNotImportUserSettings";
+
   postWebKitMessage({
     type: messageType,
     settingsBlob: exportUserSettingsBlob(),
     keys: importedKeys,
   });
+
   NativeApp.settingsBlob = null;
 }
 

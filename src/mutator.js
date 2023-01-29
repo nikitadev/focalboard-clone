@@ -60,34 +60,34 @@ class Mutator {
   #displayId;
 
   #startUndoGroup() {
-    if (this.groupId) {
+    if (this.#groupId) {
       Logger.assertRefusal("manager does not support nested groups");
       return undefined;
     }
-    this.groupId = Utils.newGuid(IdentityType.None);
+    this.#groupId = Utils.newGuid(IdentityType.None);
 
-    return this.groupId;
+    return this.#groupId;
   }
 
   #endUndoGroup(groupId) {
-    if (this.groupId !== groupId) {
+    if (this.#groupId !== groupId) {
       Logger.assertRefusal(
         "Mismatched groupId. manager does not support nested groups"
       );
       return;
     }
-    this.groupId = undefined;
+    this.#groupId = undefined;
   }
 
   async performAsUndoGroup(actions) {
-    const groupId = this.startUndoGroup();
+    const groupId = this.#startUndoGroup();
     try {
       await actions();
     } catch (err) {
       Logger.assertRefusal(`ERROR: ${err}`);
     }
     if (groupId) {
-      this.endUndoGroup(groupId);
+      this.#endUndoGroup(groupId);
     }
   }
 
@@ -104,7 +104,7 @@ class Mutator {
         await DbClient.patchBlock(boardId, oldBlock.id, undoPatch);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -143,7 +143,7 @@ class Mutator {
         );
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -167,7 +167,7 @@ class Mutator {
         await DbClient.deleteBlock(boardId, newBlock.id);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -196,7 +196,7 @@ class Mutator {
         await Promise.all(awaits);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -213,7 +213,7 @@ class Mutator {
         await afterUndo?.();
       },
       actualDescription,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -233,7 +233,7 @@ class Mutator {
         await DbClient.deleteBoardsAndBlocks(boardIds, blockIds);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -250,7 +250,7 @@ class Mutator {
         await DbClient.patchBoard(currentBoard.id, undoPatch);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -265,7 +265,7 @@ class Mutator {
         await DbClient.undeleteBoard(board.id);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -284,7 +284,7 @@ class Mutator {
         await DbClient.patchBlock(boardId, blockId, { title: oldTitle });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -302,7 +302,7 @@ class Mutator {
         await DbClient.patchBoard(boardId, { title: oldTitle });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -325,7 +325,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -347,7 +347,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -365,7 +365,7 @@ class Mutator {
         await DbClient.patchBoard(boardId, { icon: oldIcon });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -388,7 +388,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -409,7 +409,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -436,7 +436,7 @@ class Mutator {
         });
       },
       actionDescription,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -459,7 +459,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -472,7 +472,7 @@ class Mutator {
         await DbClient.deleteBoardMember(member);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -489,7 +489,7 @@ class Mutator {
         await DbClient.updateBoardMember(oldMember);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -507,7 +507,7 @@ class Mutator {
         }
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -569,7 +569,7 @@ class Mutator {
           await DbClient.patchBoardsAndBlocks(undoPatch);
         },
         "add column",
-        this.groupId
+        this.#groupId
       );
     } else {
       this.updateBoard(nextBoard, oldBoard, "add property");
@@ -630,7 +630,7 @@ class Mutator {
           await DbClient.patchBoardsAndBlocks(undoPatch);
         },
         description,
-        this.groupId
+        this.#groupId
       );
     } else {
       this.updateBoard(nextBoard, oldBoard, description);
@@ -698,7 +698,7 @@ class Mutator {
         await DbClient.patchBoardsAndBlocks(undoPatch);
       },
       "delete property",
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -720,7 +720,7 @@ class Mutator {
         await DbClient.patchBoard(boardId, undoPatch);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -960,7 +960,7 @@ class Mutator {
           await DbClient.patchBoardsAndBlocks(undoPatch);
         },
         "change property type and name",
-        this.groupId
+        this.#groupId
       );
     } else {
       this.updateBoard(nextBoard, board, "change property name");
@@ -982,7 +982,7 @@ class Mutator {
         });
       },
       "sort",
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -999,7 +999,7 @@ class Mutator {
         });
       },
       "filter",
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1016,7 +1016,7 @@ class Mutator {
         });
       },
       "group by",
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1038,7 +1038,7 @@ class Mutator {
         });
       },
       "display by",
-      this.displayId
+      this.#displayId
     );
   }
 
@@ -1069,7 +1069,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1092,7 +1092,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1115,7 +1115,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1138,7 +1138,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1161,7 +1161,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1184,7 +1184,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1207,7 +1207,7 @@ class Mutator {
         });
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1288,7 +1288,7 @@ class Mutator {
         await DbClient.unfollowBlock(blockId, blockType, userId);
       },
       "follow block",
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1301,7 +1301,7 @@ class Mutator {
         await DbClient.followBlock(blockId, blockType, userId);
       },
       "follow block",
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1373,7 +1373,7 @@ class Mutator {
         }
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1413,7 +1413,7 @@ class Mutator {
         await Promise.all(awaits);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 
@@ -1433,7 +1433,7 @@ class Mutator {
         await DbClient.moveBlockTo(blockId, srcWhere, srcBlockId);
       },
       description,
-      this.groupId
+      this.#groupId
     );
   }
 

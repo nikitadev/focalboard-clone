@@ -4,11 +4,11 @@ import moment from "moment";
 
 class Archiver {
   static async exportBoardArchive(board) {
-    Archiver.export(mutator.exportBoardArchive(board.id));
+    Archiver.#export(mutator.exportBoardArchive(board.id));
   }
 
   static async exportFullArchive(teamID) {
-    Archiver.export(mutator.exportFullArchive(teamID));
+    Archiver.#export(mutator.exportFullArchive(teamID));
   }
 
   static #export(prom) {
@@ -57,7 +57,7 @@ class Archiver {
     input.onchange = async () => {
       const file = input.files && input.files[0];
       if (file) {
-        await Archiver.importArchiveFromFile(file);
+        await Archiver.#importArchiveFromFile(file);
       }
 
       onComplete?.();

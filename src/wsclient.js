@@ -29,7 +29,6 @@ class WebSocketClient {
   teamId = "";
   onAppVersionChangeHandler = null;
   clientPrefix = "";
-  serverUrl;
   state = "init";
   onStateChange = [];
   onReconnect = [];
@@ -68,9 +67,9 @@ class WebSocketClient {
       ""
     );
 
-    if (!this.logged) {
+    if (!this.#logged) {
       Logger.log(`WSClient serverUrl: ${baseURL}`);
-      this.logged = true;
+      this.#logged = true;
     }
 
     return baseURL;
@@ -290,15 +289,15 @@ class WebSocketClient {
         }
         this.state = "close";
 
-        if (!this.errorPollId) {
-          this.errorPollId = setInterval(() => {
+        if (!this.#errorPollId) {
+          this.#errorPollId = setInterval(() => {
             Logger.logWarn(
               `Polling websockets connection for state: ${this.client?.conn?.readyState}`
             );
             if (this.client?.conn?.readyState === 1) {
               onReconnect();
-              clearInterval(this.errorPollId);
-              this.errorPollId = undefined;
+              clearInterval(this.#errorPollId);
+              this.#errorPollId = undefined;
             }
           }, 500);
         }
@@ -322,7 +321,7 @@ class WebSocketClient {
       return;
     }
 
-    const url = new URL(this.getBaseURL());
+    const url = new URL(this.#getBaseURL());
     const protocol = url.protocol === "https:" ? "wss:" : "ws:";
     const wsServerUrl = `${protocol}//${url.host}${url.pathname.replace(
       /\/$/,
@@ -372,7 +371,7 @@ class WebSocketClient {
           for (const handler of this.onReconnect) {
             handler(this);
           }
-        }, this.reopenDelay);
+        }, this.#reopenDelay);
       }
     };
 
@@ -434,7 +433,7 @@ class WebSocketClient {
 
     const [data, type] = Utils.fixWSData(message);
     if (data) {
-      this.queueUpdateNotification(data, type);
+      this.#queueUpdateNotification(data, type);
     }
   }
 
@@ -613,104 +612,104 @@ class WebSocketClient {
 
     // Remove existing queued update
     if (type === "block") {
-      this.updatedData.Blocks = this.updatedData.Blocks.filter(
+      this.#updatedData.Blocks = this.#updatedData.Blocks.filter(
         (o) => o.id !== data.id
       );
-      this.updatedData.Blocks.push(DbUtils.hydrateBlock(data));
+      this.#updatedData.Blocks.push(DbUtils.hydrateBlock(data));
     } else if (type === "category") {
-      this.updatedData.Categories = this.updatedData.Categories.filter(
+      this.#updatedData.Categories = this.#updatedData.Categories.filter(
         (c) => c.id !== data.id
       );
-      this.updatedData.Categories.push(data);
+      this.#updatedData.Categories.push(data);
     } else if (type === "blockCategories") {
-      this.updatedData.BoardCategories =
-        this.updatedData.BoardCategories.filter(
+      this.#updatedData.BoardCategories =
+        this.#updatedData.BoardCategories.filter(
           (b) =>
             !data.find((boardCategory) => boardCategory.boardID === b.boardID)
         );
-      this.updatedData.BoardCategories.push(...data);
+      this.#updatedData.BoardCategories.push(...data);
     } else if (type === "board") {
-      this.updatedData.Boards = this.updatedData.Boards.filter(
+      this.#updatedData.Boards = this.#updatedData.Boards.filter(
         (b) => b.id !== data.id
       );
-      this.updatedData.Boards.push(data);
+      this.#updatedData.Boards.push(data);
     } else if (type === "boardMembers") {
-      this.updatedData.BoardMembers = this.updatedData.BoardMembers.filter(
+      this.#updatedData.BoardMembers = this.#updatedData.BoardMembers.filter(
         (m) => m.userId !== data.userId || m.boardId !== data.boardId
       );
-      this.updatedData.BoardMembers.push(data);
+      this.#updatedData.BoardMembers.push(data);
     } else if (type === "categoryOrder") {
-      this.updatedData.CategoryOrder = data;
+      this.#updatedData.CategoryOrder = data;
     }
 
-    if (this.updateTimeout) {
-      clearTimeout(this.updateTimeout);
-      this.updateTimeout = undefined;
+    if (this.#updateTimeout) {
+      clearTimeout(this.#updateTimeout);
+      this.#updateTimeout = undefined;
     }
 
-    this.updateTimeout = setTimeout(() => {
-      this.flushUpdateNotifications();
-    }, this.notificationDelay);
+    this.#updateTimeout = setTimeout(() => {
+      this.#flushUpdateNotifications();
+    }, this.#notificationDelay);
   }
 
   #logUpdateNotification() {
-    for (const block of this.updatedData.Blocks) {
+    for (const block of this.#updatedData.Blocks) {
       Logger.log(`WSClient flush update block: ${block.id}`);
     }
 
-    for (const category of this.updatedData.Categories) {
+    for (const category of this.#updatedData.Categories) {
       Logger.log(`WSClient flush update category: ${category.id}`);
     }
 
-    for (const blockCategories of this.updatedData.BoardCategories) {
+    for (const blockCategories of this.#updatedData.BoardCategories) {
       Logger.log(
         `WSClient flush update blockCategory: ${blockCategories.boardID} ${blockCategories.categoryID}`
       );
     }
 
-    for (const board of this.updatedData.Boards) {
+    for (const board of this.#updatedData.Boards) {
       Logger.log(`WSClient flush update board: ${board.id}`);
     }
 
-    for (const boardMember of this.updatedData.BoardMembers) {
+    for (const boardMember of this.#updatedData.BoardMembers) {
       Logger.log(
         `WSClient flush update boardMember: ${boardMember.userId} ${boardMember.boardId}`
       );
     }
 
     Logger.log(
-      `WSClient flush update categoryOrder: ${this.updatedData.CategoryOrder}`
+      `WSClient flush update categoryOrder: ${this.#updatedData.CategoryOrder}`
     );
   }
 
   #flushUpdateNotifications() {
-    this.logUpdateNotification();
+    this.#logUpdateNotification();
 
     for (const handler of this.onChange.Block) {
-      handler(this, this.updatedData.Blocks);
+      handler(this, this.#updatedData.Blocks);
     }
 
     for (const handler of this.onChange.Category) {
-      handler(this, this.updatedData.Categories);
+      handler(this, this.#updatedData.Categories);
     }
 
     for (const handler of this.onChange.BoardCategory) {
-      handler(this, this.updatedData.BoardCategories);
+      handler(this, this.#updatedData.BoardCategories);
     }
 
     for (const handler of this.onChange.Board) {
-      handler(this, this.updatedData.Boards);
+      handler(this, this.#updatedData.Boards);
     }
 
     for (const handler of this.onChange.BoardMember) {
-      handler(this, this.updatedData.BoardMembers);
+      handler(this, this.#updatedData.BoardMembers);
     }
 
     for (const handler of this.onChange.CategoryReorder) {
-      handler(this, this.updatedData.CategoryOrder);
+      handler(this, this.#updatedData.CategoryOrder);
     }
 
-    this.updatedData = {
+    this.#updatedData = {
       Blocks: [],
       Categories: [],
       BoardCategories: [],

@@ -49,7 +49,7 @@ class DbClient {
     const body = JSON.stringify({ username, password, type: "normal" });
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
     if (response.status !== 200) {
@@ -69,7 +69,7 @@ class DbClient {
     const path = "/api/v2/logout";
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     localStorage.removeItem("focalboardSessionId");
 
@@ -83,7 +83,7 @@ class DbClient {
     const path = "/api/v2/clientConfig";
     const response = await fetch(this.getBaseURL() + path, {
       method: "GET",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return null;
@@ -98,7 +98,7 @@ class DbClient {
     const body = JSON.stringify({ email, username, password, token });
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
     const json = await this.getJson(response, {});
@@ -110,7 +110,7 @@ class DbClient {
     const body = JSON.stringify({ oldPassword, newPassword });
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
     const json = await this.getJson(response, {});
@@ -145,7 +145,7 @@ class DbClient {
   async getPerson() {
     const path = "/api/v2/users/me";
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -157,7 +157,7 @@ class DbClient {
   async getMyBoardMemberships() {
     const path = "/api/v2/users/me/memberships";
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -169,7 +169,7 @@ class DbClient {
   async getUser(userId) {
     const path = `/api/v2/users/${encodeURIComponent(userId)}`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -182,7 +182,7 @@ class DbClient {
     const path = "/api/v2/users";
     const body = JSON.stringify(userIds);
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "POST",
       body,
     });
@@ -197,7 +197,7 @@ class DbClient {
   async getConfig() {
     const path = "/api/v2/users/me/config";
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "GET",
     });
 
@@ -208,11 +208,11 @@ class DbClient {
     return await this.getJson(response, []);
   }
 
-  async patchUserConfig(userID, patch) {
-    const path = `/api/v2/users/${encodeURIComponent(userID)}/config`;
+  async patchUserConfig(userId, patch) {
+    const path = `/api/v2/users/${encodeURIComponent(userId)}/config`;
     const body = JSON.stringify(patch);
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "PUT",
       body,
     });
@@ -226,24 +226,24 @@ class DbClient {
 
   async exportBoardArchive(boardID) {
     const path = `/api/v2/boards/${boardID}/archive/export`;
-    return fetch(this.getBaseURL() + path, { headers: this.headers() });
+    return fetch(this.getBaseURL() + path, { headers: this.#headers() });
   }
 
   async exportFullArchive(teamID) {
     const path = `/api/v2/teams/${teamID}/archive/export`;
-    return fetch(this.getBaseURL() + path, { headers: this.headers() });
+    return fetch(this.getBaseURL() + path, { headers: this.#headers() });
   }
 
   async importAllArchiveToFile(file) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const headers = this.headers();
+    const headers = this.#headers();
 
     // TIPTIP: Leave out Content-Type here, it will be automatically set by the browser
     delete headers["Content-Type"];
 
-    return fetch(this.getBaseURL() + this.teamPath() + "/archive/import", {
+    return fetch(`${this.getBaseURL()}${this.#teamPath()}/archive/import`, {
       method: "POST",
       headers,
       body: formData,
@@ -253,21 +253,20 @@ class DbClient {
   async getBlocksWithParent(parentId, type) {
     let path;
     if (type) {
-      path =
-        this.teamPath() +
-        `/blocks?parent_id=${encodeURIComponent(
-          parentId
-        )}&type=${encodeURIComponent(type)}`;
+      path = `${this.#teamPath()}/blocks?parent_id=${encodeURIComponent(
+        parentId
+      )}&type=${encodeURIComponent(type)}`;
     } else {
-      path =
-        this.teamPath() + `/blocks?parent_id=${encodeURIComponent(parentId)}`;
+      path = `${this.#teamPath()}/blocks?parent_id=${encodeURIComponent(
+        parentId
+      )}`;
     }
-    return this.getBlocksWithPath(path);
+    return this.#getBlocksWithPath(path);
   }
 
   async getBlocksWithType(type) {
-    const path = this.teamPath() + `/blocks?type=${encodeURIComponent(type)}`;
-    return this.getBlocksWithPath(path);
+    const path = `${this.#teamPath()}/blocks?type=${encodeURIComponent(type)}`;
+    return this.#getBlocksWithPath(path);
   }
 
   async getBlocksWithBlockID(blockID, boardID, optionalReadToken) {
@@ -276,7 +275,7 @@ class DbClient {
     if (readToken) {
       path += `&read_token=${readToken}`;
     }
-    return this.getBlocksWithPath(path);
+    return this.#getBlocksWithPath(path);
   }
 
   async getAllBlocks(boardID) {
@@ -285,12 +284,12 @@ class DbClient {
     if (readToken) {
       path += `&read_token=${readToken}`;
     }
-    return this.getBlocksWithPath(path);
+    return this.#getBlocksWithPath(path);
   }
 
-  async _getBlocksWithPath(path) {
+  async #getBlocksWithPath(path) {
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -299,9 +298,9 @@ class DbClient {
     return this.fixBlocks(blocks);
   }
 
-  async _getBoardsWithPath(path) {
+  async #getBoardsWithPath(path) {
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -310,9 +309,9 @@ class DbClient {
     return boards;
   }
 
-  async _getBoardMembersWithPath(path) {
+  async #getBoardMembersWithPath(path) {
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -338,7 +337,7 @@ class DbClient {
       `${this.getBaseURL()}/api/v2/boards/${boardId}/blocks/${blockId}`,
       {
         method: "PATCH",
-        headers: this.headers(),
+        headers: this.#headers(),
         body,
       }
     );
@@ -352,10 +351,10 @@ class DbClient {
       block_patches: blockPatches,
     });
 
-    const path = this.getBaseURL() + this.teamPath() + "/blocks";
+    const path = `${this.getBaseURL()}${this.#teamPath()}/blocks`;
     const response = fetch(path, {
       method: "PATCH",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
     return response;
@@ -370,7 +369,7 @@ class DbClient {
       )}`,
       {
         method: "DELETE",
-        headers: this.headers(),
+        headers: this.#headers(),
       }
     );
   }
@@ -384,7 +383,7 @@ class DbClient {
       )}/blocks/${encodeURIComponent(blockId)}/undelete`,
       {
         method: "POST",
-        headers: this.headers(),
+        headers: this.#headers(),
       }
     );
   }
@@ -393,7 +392,7 @@ class DbClient {
     Logger.log(`undeleteBoard: ${boardId}`);
     return fetch(`${this.getBaseURL()}/api/v2/boards/${boardId}/undelete`, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
   }
 
@@ -405,19 +404,19 @@ class DbClient {
       subscriberId: userId,
     };
 
-    return fetch(this.getBaseURL() + "/api/v2/subscriptions", {
+    return fetch(`${this.getBaseURL()}/api/v2/subscriptions`, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body: JSON.stringify(body),
     });
   }
 
   async unfollowBlock(blockId, userId) {
     return fetch(
-      this.getBaseURL() + `/api/v2/subscriptions/${blockId}/${userId}`,
+      `${this.getBaseURL()}/api/v2/subscriptions/${blockId}/${userId}`,
       {
         method: "DELETE",
-        headers: this.headers(),
+        headers: this.#headers(),
       }
     );
   }
@@ -442,7 +441,7 @@ class DbClient {
           : ""),
       {
         method: "POST",
-        headers: this.headers(),
+        headers: this.#headers(),
         body,
       }
     );
@@ -468,9 +467,9 @@ class DbClient {
     });
 
     const body = JSON.stringify(bab);
-    return fetch(this.getBaseURL() + "/api/v2/boards-and-blocks", {
+    return fetch(`${this.getBaseURL()}/api/v2/boards-and-blocks`, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
@@ -484,9 +483,9 @@ class DbClient {
 
     const body = JSON.stringify({ boards: boardIds, blocks: blockIds });
 
-    return fetch(this.getBaseURL() + "/api/v2/boards-and-blocks", {
+    return fetch(`${this.getBaseURL()}/api/v2/boards-and-blocks`, {
       method: "DELETE",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
@@ -502,7 +501,7 @@ class DbClient {
       this.getBaseURL() + `/api/v2/boards/${member.boardId}/members`,
       {
         method: "POST",
-        headers: this.headers(),
+        headers: this.#headers(),
         body,
       }
     );
@@ -518,10 +517,10 @@ class DbClient {
     Logger.log(`joinBoard: board ${boardId}`);
 
     const response = await fetch(
-      this.getBaseURL() + `/api/v2/boards/${boardId}/join`,
+      `${this.getBaseURL()}/api/v2/boards/${boardId}/join`,
       {
         method: "POST",
-        headers: this.headers(),
+        headers: this.#headers(),
       }
     );
 
@@ -543,7 +542,7 @@ class DbClient {
         `/api/v2/boards/${member.boardId}/members/${member.userId}`,
       {
         method: "PUT",
-        headers: this.headers(),
+        headers: this.#headers(),
         body,
       }
     );
@@ -559,7 +558,7 @@ class DbClient {
         `/api/v2/boards/${member.boardId}/members/${member.userId}`,
       {
         method: "DELETE",
-        headers: this.headers(),
+        headers: this.#headers(),
       }
     );
   }
@@ -574,7 +573,7 @@ class DbClient {
     const body = JSON.stringify(babp);
     return fetch(this.getBaseURL() + "/api/v2/boards-and-blocks", {
       method: "PATCH",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
@@ -582,7 +581,7 @@ class DbClient {
   async getSharing(boardID) {
     const path = `/api/v2/boards/${boardID}/sharing`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -595,7 +594,7 @@ class DbClient {
     const body = JSON.stringify(sharing);
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
     if (response.status !== 200) {
@@ -606,24 +605,24 @@ class DbClient {
   }
 
   async regenerateTeamSignupToken() {
-    const path = this.teamPath() + "/regenerate_signup_token";
+    const path = `${this.#teamPath()}/regenerate_signup_token`;
     await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
   }
 
-  async uploadFile(rootID, file) {
+  async uploadFile(rootId, file) {
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const headers = this.headers();
+      const headers = this.#headers();
 
       delete headers["Content-Type"];
 
       const response = await fetch(
-        this.getBaseURL() + this.teamPath() + "/" + rootID + "/files",
+        `${this.getBaseURL()}${this.#teamPath()}/${rootId}/files`,
         {
           method: "POST",
           headers,
@@ -650,7 +649,7 @@ class DbClient {
     return undefined;
   }
 
-  async uploadAttachment(rootID, file) {
+  async uploadAttachment(rootId, file) {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -658,10 +657,10 @@ class DbClient {
 
     xhr.open(
       "POST",
-      this.getBaseURL() + this.teamPath() + "/" + rootID + "/files",
+      `${this.getBaseURL()}${this.#teamPath()}/${rootId}/files`,
       true
     );
-    const headers = this.headers();
+    const headers = this.#headers();
     delete headers["Content-Type"];
 
     xhr.setRequestHeader("Accept", "application/json");
@@ -679,20 +678,13 @@ class DbClient {
   }
 
   async getFileInfo(boardId, fileId) {
-    let path =
-      "/api/v2/files/teams/" +
-      this.teamId +
-      "/" +
-      boardId +
-      "/" +
-      fileId +
-      "/info";
+    let path = `api/v2/files/teams/${this.teamId}/${boardId}/${fileId}/info`;
     const readToken = Utils.getReadToken();
     if (readToken) {
       path += `?read_token=${readToken}`;
     }
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     let fileInfo = {};
 
@@ -713,7 +705,7 @@ class DbClient {
       path += `?read_token=${readToken}`;
     }
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     let fileInfo = {};
 
@@ -728,9 +720,9 @@ class DbClient {
   }
 
   async getTeam() {
-    const path = this.teamPath();
+    const path = this.#teamPath();
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return null;
@@ -740,7 +732,7 @@ class DbClient {
   }
 
   async getTeams() {
-    const path = this.teamsPath();
+    const path = this.#teamsPath();
     const response = await fetch(this.getBaseURL() + path, {
       headers: this.headers(),
     });
@@ -752,12 +744,12 @@ class DbClient {
   }
 
   async getTeamUsers(excludeBots) {
-    let path = this.teamPath() + "/users";
+    let path = `${this.#teamPath()}/users`;
     if (excludeBots) {
       path += "?exclude_bots=true";
     }
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -766,12 +758,12 @@ class DbClient {
   }
 
   async searchTeamUsers(searchQuery, excludeBots) {
-    let path = this.teamPath() + `/users?search=${searchQuery}`;
+    let path = `${this.#teamPath()}/users?search=${searchQuery}`;
     if (excludeBots) {
       path += "&exclude_bots=true";
     }
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -780,24 +772,24 @@ class DbClient {
   }
 
   async getTeamTemplates(teamId) {
-    const path = this.teamPath(teamId) + "/templates";
-    return this.getBoardsWithPath(path);
+    const path = `${this.#teamPath(teamId)}/templates`;
+    return this.#getBoardsWithPath(path);
   }
 
   async getBoards() {
-    const path = this.teamPath() + "/boards";
-    return this.getBoardsWithPath(path);
+    const path = `${this.#teamPath()}/boards`;
+    return this.#getBoardsWithPath(path);
   }
 
-  async getBoard(boardID) {
-    let path = `/api/v2/boards/${boardID}`;
+  async getBoard(boardId) {
+    let path = `/api/v2/boards/${boardId}`;
     const readToken = Utils.getReadToken();
     if (readToken) {
       path += `?read_token=${readToken}`;
     }
     const response = await fetch(this.getBaseURL() + path, {
       method: "GET",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
 
     if (response.status !== 200) {
@@ -807,7 +799,7 @@ class DbClient {
     return this.getJson(response, {});
   }
 
-  async duplicateBoard(boardID, asTemplate, toTeam) {
+  async duplicateBoard(boardId, asTemplate, toTeam) {
     let query = "?asTemplate=false";
     if (asTemplate) {
       query = "?asTemplate=true";
@@ -816,10 +808,10 @@ class DbClient {
       query += `&toTeam=${encodeURIComponent(toTeam)}`;
     }
 
-    const path = `/api/v2/boards/${boardID}/duplicate${query}`;
+    const path = `/api/v2/boards/${boardId}/duplicate${query}`;
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
 
     if (response.status !== 200) {
@@ -829,15 +821,15 @@ class DbClient {
     return this.getJson(response, {});
   }
 
-  async duplicateBlock(boardID, blockID, asTemplate) {
+  async duplicateBlock(boardId, blockId, asTemplate) {
     let query = "?asTemplate=false";
     if (asTemplate) {
       query = "?asTemplate=true";
     }
-    const path = `/api/v2/boards/${boardID}/blocks/${blockID}/duplicate${query}`;
+    const path = `/api/v2/boards/${boardId}/blocks/${blockId}/duplicate${query}`;
     const response = await fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
 
     if (response.status !== 200) {
@@ -848,20 +840,20 @@ class DbClient {
   }
 
   async getBlocksForBoard(teamId, boardId) {
-    const path = this.teamPath(teamId) + `/boards/${boardId}`;
-    return this.getBoardsWithPath(path);
+    const path = `${this.#teamPath(teamId)}/boards/${boardId}`;
+    return this.#getBoardsWithPath(path);
   }
 
   async getBoardMembers(boardId) {
     const path = `/api/v2/boards/${boardId}/members`;
-    return this.getBoardMembersWithPath(path);
+    return this.#getBoardMembersWithPath(path);
   }
 
   async createBoard(board) {
     Logger.log(`createBoard: ${board.title} [${board.type}]`);
-    return fetch(this.getBaseURL() + this.teamPath(board.teamId) + "/boards", {
+    return fetch(`${this.getBaseURL()}${this.#teamPath(board.teamId)}/boards`, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body: JSON.stringify(board),
     });
   }
@@ -871,7 +863,7 @@ class DbClient {
     const body = JSON.stringify(boardPatch);
     return fetch(`${this.getBaseURL()}/api/v2/boards/${boardId}`, {
       method: "PATCH",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
@@ -880,14 +872,14 @@ class DbClient {
     Logger.log(`deleteBoard: ${boardId}`);
     return fetch(`${this.getBaseURL()}/api/v2/boards/${boardId}`, {
       method: "DELETE",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
   }
 
-  async getSidebarCategories(teamID) {
-    const path = `/api/v2/teams/${teamID}/categories`;
+  async getSidebarCategories(teamId) {
+    const path = `/api/v2/teams/${teamId}/categories`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -902,17 +894,17 @@ class DbClient {
 
     return fetch(this.getBaseURL() + path, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
 
-  async deleteSidebarCategory(teamID, categoryID) {
-    const url = `/api/v2/teams/${teamID}/categories/${categoryID}`;
+  async deleteSidebarCategory(teamId, categoryId) {
+    const url = `/api/v2/teams/${teamId}/categories/${categoryId}`;
 
     return fetch(this.getBaseURL() + url, {
       method: "DELETE",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
   }
 
@@ -922,17 +914,17 @@ class DbClient {
 
     return fetch(this.getBaseURL() + path, {
       method: "PUT",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
 
-  async reorderSidebarCategories(teamID, newCategoryOrder) {
-    const path = `/api/v2/teams/${teamID}/categories/reorder`;
+  async reorderSidebarCategories(teamId, newCategoryOrder) {
+    const path = `/api/v2/teams/${teamId}/categories/reorder`;
     const body = JSON.stringify(newCategoryOrder);
     const response = await fetch(this.getBaseURL() + path, {
       method: "PUT",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
 
@@ -943,12 +935,12 @@ class DbClient {
     return await this.getJson(response, []);
   }
 
-  async reorderSidebarCategoryBoards(teamID, categoryID, newBoardsOrder) {
-    const path = `/api/v2/teams/${teamID}/categories/${categoryID}/boards/reorder`;
+  async reorderSidebarCategoryBoards(teamId, categoryId, newBoardsOrder) {
+    const path = `/api/v2/teams/${teamId}/categories/${categoryId}/boards/reorder`;
     const body = JSON.stringify(newBoardsOrder);
     const response = await fetch(this.getBaseURL() + path, {
       method: "PUT",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
 
@@ -959,29 +951,29 @@ class DbClient {
     return await this.getJson(response, []);
   }
 
-  async moveBoardToCategory(teamID, boardID, toCategoryID, fromCategoryID) {
-    const url = `/api/v2/teams/${teamID}/categories/${
-      toCategoryID || "0"
-    }/boards/${boardID}`;
+  async moveBoardToCategory(teamId, boardId, toCategoryId, fromCategoryId) {
+    const url = `/api/v2/teams/${teamId}/categories/${
+      toCategoryId || "0"
+    }/boards/${boardId}`;
     const payload = {
-      fromCategoryID,
+      fromCategoryId,
     };
     const body = JSON.stringify(payload);
 
     return fetch(this.getBaseURL() + url, {
       method: "POST",
-      headers: this.headers(),
+      headers: this.#headers(),
       body,
     });
   }
 
-  async search(teamID, query) {
-    const url = `${this.teamPath(teamID)}/boards/search?q=${encodeURIComponent(
+  async search(teamId, query) {
+    const url = `${this.#teamPath(teamId)}/boards/search?q=${encodeURIComponent(
       query
     )}`;
     const response = await fetch(this.getBaseURL() + url, {
       method: "GET",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
 
     if (response.status !== 200) {
@@ -991,13 +983,13 @@ class DbClient {
     return await this.getJson(response, []);
   }
 
-  async searchLinkableBoards(teamID, query) {
-    const url = `${this.teamPath(
-      teamID
+  async searchLinkableBoards(teamId, query) {
+    const url = `${this.#teamPath(
+      teamId
     )}/boards/search/linkable?q=${encodeURIComponent(query)}`;
     const response = await fetch(this.getBaseURL() + url, {
       method: "GET",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
 
     if (response.status !== 200) {
@@ -1011,7 +1003,7 @@ class DbClient {
     const url = `/api/v2/boards/search?q=${encodeURIComponent(query)}`;
     const response = await fetch(this.getBaseURL() + url, {
       method: "GET",
-      headers: this.headers(),
+      headers: this.#headers(),
     });
 
     if (response.status !== 200) {
@@ -1024,7 +1016,7 @@ class DbClient {
   async getUserBlockSubscriptions(userId) {
     const path = `/api/v2/subscriptions/${userId}`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return [];
@@ -1036,7 +1028,7 @@ class DbClient {
   async searchUserChannels(teamId, searchQuery) {
     const path = `/api/v2/teams/${teamId}/channels?search=${searchQuery}`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "GET",
     });
     if (response.status !== 200) {
@@ -1049,7 +1041,7 @@ class DbClient {
   async getChannel(teamId, channelId) {
     const path = `/api/v2/teams/${teamId}/channels/${channelId}`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "GET",
     });
     if (response.status !== 200) {
@@ -1062,7 +1054,7 @@ class DbClient {
   async prepareOnboarding(teamId) {
     const path = `/api/v2/teams/${teamId}/onboard`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "POST",
     });
     if (response.status !== 200) {
@@ -1075,7 +1067,7 @@ class DbClient {
   async notifyAdminUpgrade() {
     const path = `${this.teamPath()}/notifyadminupgrade`;
     await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
       method: "POST",
     });
   }
@@ -1083,7 +1075,7 @@ class DbClient {
   async getBoardsCloudLimits() {
     const path = "/api/v2/limits";
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -1097,7 +1089,7 @@ class DbClient {
   async getSiteStatistics() {
     const path = "/api/v2/statistics";
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -1113,7 +1105,7 @@ class DbClient {
   async getMyTopBoards(timeRange, page, perPage, teamId) {
     const path = `/api/v2/users/me/boards/insights?time_range=${timeRange}&page=${page}&per_page=${perPage}&team_id=${teamId}`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -1125,7 +1117,7 @@ class DbClient {
   async getTeamTopBoards(timeRange, page, perPage, teamId) {
     const path = `/api/v2/teams/${teamId}/boards/insights?time_range=${timeRange}&page=${page}&per_page=${perPage}`;
     const response = await fetch(this.getBaseURL() + path, {
-      headers: this.headers(),
+      headers: this.#headers(),
     });
     if (response.status !== 200) {
       return undefined;
@@ -1139,7 +1131,7 @@ class DbClient {
       `${this.getBaseURL()}/api/v2/content-blocks/${blockId}/moveto/${where}/${dstBlockId}`,
       {
         method: "POST",
-        headers: this.headers(),
+        headers: this.#headers(),
         body: "{}",
       }
     );

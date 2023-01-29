@@ -234,8 +234,8 @@ class Utils {
       if (element.tagName === "svg") {
         myResults.padding += element.clientWidth;
         myResults.padding += Utils.getHorizontalBorder(style);
-        myResults.padding += Utils.getHorizontalMargin(style);
-        myResults.fontDescriptor = Utils.getFontString(style);
+        myResults.padding += Utils.#getHorizontalMargin(style);
+        myResults.fontDescriptor = Utils.#getFontString(style);
       } else {
         switch (element.className) {
           case IconClass:
@@ -246,7 +246,7 @@ class Utils {
           case OpenButtonClass:
             break;
           default: {
-            myResults.fontDescriptor = Utils.getFontString(style);
+            myResults.fontDescriptor = Utils.#getFontString(style);
             myResults.padding += Utils.getTotalHorizontalPadding(style);
             const childResults = Utils.getFontAndPaddingFromChildren(
               element.children,
@@ -301,7 +301,7 @@ class Utils {
   static getTotalHorizontalPadding(style) {
     return (
       Utils.getHorizontalPadding(style) +
-      Utils.getHorizontalMargin(style) +
+      Utils.#getHorizontalMargin(style) +
       Utils.getHorizontalBorder(style)
     );
   }
@@ -362,7 +362,7 @@ class Utils {
 
   static displayDate(date) {
     return i18n.date(date, {
-      year: Utils.yearOption(date),
+      year: Utils.#yearOption(date),
       month: "long",
       day: "2-digit",
     });
@@ -378,7 +378,7 @@ class Utils {
 
   static displayDateTime(date) {
     return i18n.formatDate(date, {
-      year: Utils.yearOption(date),
+      year: Utils.#yearOption(date),
       month: "long",
       day: "2-digit",
       hour: "numeric",

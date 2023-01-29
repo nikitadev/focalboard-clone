@@ -14,7 +14,7 @@ class CsvExporter {
       return;
     }
 
-    const rows = CsvExporter.generateTableArray(board, cards, viewToExport);
+    const rows = CsvExporter.#generateTableArray(board, cards, viewToExport);
 
     let csvContent = "data:text/csv;charset=utf-8,";
 
@@ -85,7 +85,7 @@ class CsvExporter {
 
     cards.forEach((card) => {
       const row = [];
-      row.push(`"${CsvExporter.encodeText(card.title)}"`);
+      row.push(`"${CsvExporter.#encodeText(card.title)}"`);
       visibleProperties.forEach((template) => {
         let propertyValue = card.fields.properties[template.id];
         const property = propsRegistry.get(template.type);
